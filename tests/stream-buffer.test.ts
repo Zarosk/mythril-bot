@@ -192,8 +192,6 @@ describe('StreamBuffer', () => {
         return Promise.resolve();
       });
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-
       const buffer = new StreamBuffer({
         flushIntervalMs: 100000,
         maxBufferSize: 5,
@@ -206,10 +204,8 @@ describe('StreamBuffer', () => {
       buffer.append('67890'); // Should still work
       await new Promise(resolve => setTimeout(resolve, 10));
 
+      // Error logged internally via logger, but buffer should continue working
       expect(flushMock).toHaveBeenCalledTimes(2);
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
   });
 });

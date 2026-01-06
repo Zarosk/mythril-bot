@@ -42,6 +42,7 @@ export class RateLimitError extends Error {
   }
 }
 
+// eslint-disable-next-line no-undef
 function parseRateLimitHeaders(response: Response): RateLimitInfo | null {
   const limit = response.headers.get('x-ratelimit-limit');
   const remaining = response.headers.get('x-ratelimit-remaining');

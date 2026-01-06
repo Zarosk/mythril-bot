@@ -25,6 +25,14 @@ import {
 } from './embeds';
 import logger from '../utils/logger';
 import { addNote, RateLimitError, formatRateLimitWarning } from './brain-client';
+import {
+  checkUserCooldown,
+  COOLDOWNS,
+  requiresAdmin,
+  isAdmin,
+  formatCooldownMessage,
+  sanitizeInput,
+} from '../utils/security';
 
 // Forward declaration for OadsBot to avoid circular imports
 interface OadsBotInterface {
@@ -173,6 +181,35 @@ export async function handleSlashCommand(
   if (interaction.commandName !== 'oads') return;
 
   const subcommand = interaction.options.getSubcommand();
+  const userId = interaction.user.id;
+  const member = interaction.member as import('discord.js').GuildMember | null;
+
+  // Check admin permission for sensitive commands
+  if (requiresAdmin(subcommand) && !isAdmin(member)) {
+    logger.warn('Unauthorized admin command attempt', {
+      userId,
+      userTag: interaction.user.tag,
+      subcommand,
+    });
+    await interaction.reply({
+      content: 'This command requires Administrator permissions.',
+      ephemeral: true,
+    });
+    return;
+  }
+
+  // Check cooldown
+  const cooldownMs = COOLDOWNS[subcommand as keyof typeof COOLDOWNS];
+  if (cooldownMs) {
+    const { allowed, remainingMs } = checkUserCooldown(userId, subcommand, cooldownMs);
+    if (!allowed) {
+      await interaction.reply({
+        content: formatCooldownMessage(remainingMs),
+        ephemeral: true,
+      });
+      return;
+    }
+  }
 
   try {
     switch (subcommand) {
@@ -378,7 +415,8 @@ async function handleStop(
   vaultMonitor: VaultMonitor,
   processManager: ProcessManager
 ): Promise<void> {
-  const reason = interaction.options.getString('reason') || undefined;
+  const rawReason = interaction.options.getString('reason');
+  const reason = rawReason ? sanitizeInput(rawReason, 500) : undefined;
 
   if (!processManager.isRunning()) {
     await interaction.reply({
@@ -426,7 +464,8 @@ async function handleApprove(
   }
 
   const approver = interaction.user.tag;
-  const notes = interaction.options.getString('notes') || undefined;
+  const rawNotes = interaction.options.getString('notes');
+  const notes = rawNotes ? sanitizeInput(rawNotes, 1000) : undefined;
 
   await interaction.deferReply();
 
@@ -464,7 +503,8 @@ async function handleReject(
     return;
   }
 
-  const reason = interaction.options.getString('reason', true); // Required
+  const rawReason = interaction.options.getString('reason', true); // Required
+  const reason = sanitizeInput(rawReason, 1000);
   const rejector = interaction.user.tag;
 
   await interaction.deferReply();
@@ -586,8 +626,10 @@ async function handleBrain(
   interaction: ChatInputCommandInteraction,
   config: Config
 ): Promise<void> {
-  const content = interaction.options.getString('content', true);
-  const project = interaction.options.getString('project') || undefined;
+  const rawContent = interaction.options.getString('content', true);
+  const content = sanitizeInput(rawContent, 2000);
+  const rawProject = interaction.options.getString('project');
+  const project = rawProject ? sanitizeInput(rawProject, 100) : undefined;
 
   if (!config.brainApi.apiKey) {
     await interaction.reply({
