@@ -24,6 +24,7 @@ import {
   createRejectionEmbed,
 } from './embeds';
 import logger from '../utils/logger';
+import { addNote, RateLimitError, formatRateLimitWarning } from './brain-client';
 
 // Forward declaration for OadsBot to avoid circular imports
 interface OadsBotInterface {
@@ -599,39 +600,49 @@ async function handleBrain(
   await interaction.deferReply();
 
   try {
-    const response = await fetch(`${config.brainApi.url}/api/v1/notes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': config.brainApi.apiKey,
-      },
-      body: JSON.stringify({
-        content,
-        project,
-        source: 'discord',
-      }),
-    });
+    const { note, rateLimit } = await addNote(content, project);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API returned ${response.status}: ${errorText}`);
+    if (!note) {
+      await interaction.editReply('Failed to add note to brain.');
+      return;
     }
 
-    const result = await response.json() as { id?: string | number };
+    // Build response with optional rate limit warning
+    let rateLimitWarning = '';
+    if (rateLimit?.isNearLimit) {
+      const warning = formatRateLimitWarning(rateLimit);
+      if (warning) {
+        rateLimitWarning = `\n\n*${warning}*`;
+      }
+    }
 
     await interaction.editReply({
+      content: rateLimitWarning || undefined,
       embeds: [{
         title: 'Note Added to Brain',
         description: content.length > 200 ? content.substring(0, 200) + '...' : content,
         color: 0x00ff00,
         fields: [
           ...(project ? [{ name: 'Project', value: project, inline: true }] : []),
-          ...(result.id ? [{ name: 'Note ID', value: String(result.id), inline: true }] : []),
+          { name: 'Note ID', value: note.id, inline: true },
         ],
         timestamp: new Date().toISOString(),
       }],
     });
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      const warning = formatRateLimitWarning(error.rateLimit);
+      await interaction.editReply({
+        embeds: [{
+          title: 'Rate Limit Reached',
+          description: warning || 'Too many requests. Please wait.',
+          color: 0xff6600, // Orange
+          timestamp: new Date().toISOString(),
+        }],
+      });
+      return;
+    }
+
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     await interaction.editReply(`Failed to add note to brain: ${errorMsg}`);
   }

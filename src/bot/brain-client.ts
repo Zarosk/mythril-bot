@@ -17,10 +17,60 @@ export interface BrainTask {
   project?: string;
 }
 
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  reset: number; // Unix timestamp
+  usagePercent: number;
+  isNearLimit: boolean; // >= 80% used
+  isAtLimit: boolean;
+  resetIn?: number; // seconds until reset (only when at limit)
+}
+
+export interface BrainResponse<T> {
+  data: T;
+  rateLimit: RateLimitInfo | null;
+}
+
+export class RateLimitError extends Error {
+  public rateLimit: RateLimitInfo;
+
+  constructor(message: string, rateLimit: RateLimitInfo) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.rateLimit = rateLimit;
+  }
+}
+
+function parseRateLimitHeaders(response: Response): RateLimitInfo | null {
+  const limit = response.headers.get('x-ratelimit-limit');
+  const remaining = response.headers.get('x-ratelimit-remaining');
+  const reset = response.headers.get('x-ratelimit-reset');
+
+  if (!limit || remaining === null) {
+    return null;
+  }
+
+  const limitNum = parseInt(limit, 10);
+  const remainingNum = parseInt(remaining, 10);
+  const resetNum = reset ? parseInt(reset, 10) : 0;
+  const used = limitNum - remainingNum;
+  const usagePercent = Math.round((used / limitNum) * 100);
+
+  return {
+    limit: limitNum,
+    remaining: remainingNum,
+    reset: resetNum,
+    usagePercent,
+    isNearLimit: usagePercent >= 80,
+    isAtLimit: remainingNum === 0,
+  };
+}
+
 async function brainFetch<T>(
   path: string,
   options: globalThis.RequestInit = {}
-): Promise<T> {
+): Promise<BrainResponse<T>> {
   const url = config.brainApi.url;
   const apiKey = config.brainApi.apiKey;
 
@@ -37,20 +87,78 @@ async function brainFetch<T>(
     },
   });
 
+  const rateLimit = parseRateLimitHeaders(response);
+
+  // Log when approaching limit
+  if (rateLimit?.isNearLimit && !rateLimit.isAtLimit) {
+    logger.warn('Brain API rate limit approaching', {
+      used: rateLimit.limit - rateLimit.remaining,
+      limit: rateLimit.limit,
+      usagePercent: rateLimit.usagePercent,
+    });
+  }
+
+  if (response.status === 429) {
+    // Parse rate limit error response
+    const errorBody = await response.json().catch(() => ({})) as {
+      resetIn?: number;
+      resetAt?: string;
+    };
+
+    const resetIn = errorBody.resetIn ?? (rateLimit?.reset ? Math.ceil((rateLimit.reset * 1000 - Date.now()) / 1000) : 60);
+
+    const limitInfo: RateLimitInfo = {
+      limit: rateLimit?.limit ?? 100,
+      remaining: 0,
+      reset: rateLimit?.reset ?? Math.floor(Date.now() / 1000) + resetIn,
+      usagePercent: 100,
+      isNearLimit: true,
+      isAtLimit: true,
+      resetIn,
+    };
+
+    logger.warn('Brain API rate limit exceeded', {
+      limit: limitInfo.limit,
+      resetIn: limitInfo.resetIn,
+    });
+
+    throw new RateLimitError('Rate limit exceeded', limitInfo);
+  }
+
   if (!response.ok) {
     throw new Error(`Brain API error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json() as Promise<T>;
+  const data = await response.json() as T;
+  return { data, rateLimit };
+}
+
+// Simple fetch for operations that don't need rate limit info returned
+async function brainFetchSimple<T>(
+  path: string,
+  options: globalThis.RequestInit = {}
+): Promise<T | null> {
+  try {
+    const result = await brainFetch<T>(path, options);
+    return result.data;
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error; // Re-throw rate limit errors
+    }
+    throw error;
+  }
 }
 
 export async function searchBrain(query: string): Promise<BrainNote[]> {
   try {
-    const data = await brainFetch<{ results: BrainNote[] }>(
+    const data = await brainFetchSimple<{ results: BrainNote[] }>(
       `/api/v1/search?q=${encodeURIComponent(query)}`
     );
-    return data.results || [];
+    return data?.results || [];
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
     logger.warn('Brain search failed', { query, error });
     return [];
   }
@@ -58,11 +166,14 @@ export async function searchBrain(query: string): Promise<BrainNote[]> {
 
 export async function getRecentNotes(limit: number = 10): Promise<BrainNote[]> {
   try {
-    const data = await brainFetch<{ notes: BrainNote[] }>(
+    const data = await brainFetchSimple<{ notes: BrainNote[] }>(
       `/api/v1/notes?limit=${limit}`
     );
-    return data.notes || [];
+    return data?.notes || [];
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
     logger.warn('Brain get recent notes failed', { limit, error });
     return [];
   }
@@ -70,28 +181,40 @@ export async function getRecentNotes(limit: number = 10): Promise<BrainNote[]> {
 
 export async function getActiveTasks(): Promise<BrainTask[]> {
   try {
-    const data = await brainFetch<{ tasks: BrainTask[] }>(
+    const data = await brainFetchSimple<{ tasks: BrainTask[] }>(
       `/api/v1/tasks?status=active`
     );
-    return data.tasks || [];
+    return data?.tasks || [];
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
     logger.warn('Brain get active tasks failed', { error });
     return [];
   }
 }
 
+export interface AddNoteResult {
+  note: BrainNote | null;
+  rateLimit: RateLimitInfo | null;
+}
+
 export async function addNote(
   content: string,
   project?: string
-): Promise<BrainNote | null> {
+): Promise<AddNoteResult> {
   try {
-    return await brainFetch<BrainNote>('/api/v1/notes', {
+    const result = await brainFetch<BrainNote>('/api/v1/notes', {
       method: 'POST',
       body: JSON.stringify({ content, project, source: 'discord-chat' }),
     });
+    return { note: result.data, rateLimit: result.rateLimit };
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
     logger.error('Brain add note failed', { project, error });
-    return null;
+    return { note: null, rateLimit: null };
   }
 }
 
@@ -101,12 +224,32 @@ export async function createTask(
   project: string
 ): Promise<BrainTask | null> {
   try {
-    return await brainFetch<BrainTask>('/api/v1/tasks', {
+    const result = await brainFetch<BrainTask>('/api/v1/tasks', {
       method: 'POST',
       body: JSON.stringify({ title, description, project }),
     });
+    return result.data;
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
     logger.error('Brain create task failed', { title, project, error });
     return null;
   }
+}
+
+/**
+ * Format a rate limit warning message for Discord
+ */
+export function formatRateLimitWarning(rateLimit: RateLimitInfo): string | null {
+  if (rateLimit.isAtLimit) {
+    return `Rate limit reached (${rateLimit.limit}/${rateLimit.limit} requests).\nResets in ${rateLimit.resetIn} seconds. Take a breather.`;
+  }
+
+  if (rateLimit.isNearLimit) {
+    const used = rateLimit.limit - rateLimit.remaining;
+    return `${used}/${rateLimit.limit} API calls used this minute.`;
+  }
+
+  return null;
 }

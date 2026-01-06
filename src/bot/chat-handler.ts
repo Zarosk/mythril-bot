@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Message, TextChannel } from 'discord.js';
 import { config } from '../config';
-import { searchBrain, getRecentNotes, getActiveTasks } from './brain-client';
+import { searchBrain, getRecentNotes, getActiveTasks, RateLimitError } from './brain-client';
 import logger from '../utils/logger';
 
 const SYSTEM_PROMPT = `You are an AI development assistant integrated with the user's personal knowledge base (Brain).
@@ -31,6 +31,34 @@ function getAnthropicClient(): Anthropic {
     });
   }
   return anthropicClient;
+}
+
+/**
+ * Check if an error is an Anthropic rate limit error
+ */
+function isAnthropicRateLimitError(error: unknown): boolean {
+  if (error instanceof Anthropic.RateLimitError) {
+    return true;
+  }
+  // Also check for the status code in case the SDK wraps it differently
+  if (error && typeof error === 'object' && 'status' in error) {
+    return (error as { status: number }).status === 429;
+  }
+  return false;
+}
+
+/**
+ * Format Anthropic rate limit error message for Discord
+ */
+function formatAnthropicRateLimitMessage(): string {
+  return [
+    '**Anthropic API Rate Limit Hit**',
+    '',
+    "This is your API key's limit, not ours.",
+    'Check usage: https://console.anthropic.com',
+    '',
+    'Try again in a minute or consider upgrading your plan.',
+  ].join('\n');
 }
 
 export async function handleChatMessage(message: Message): Promise<void> {
@@ -75,6 +103,27 @@ export async function handleChatMessage(message: Message): Promise<void> {
       await message.reply(reply);
     }
   } catch (error) {
+    // Handle Anthropic rate limit errors specially
+    if (isAnthropicRateLimitError(error)) {
+      logger.warn('Anthropic API rate limit hit', {
+        userId: message.author.id,
+      });
+      await message.reply(formatAnthropicRateLimitMessage());
+      return;
+    }
+
+    // Handle Brain API rate limit errors
+    if (error instanceof RateLimitError) {
+      logger.warn('Brain API rate limit hit during chat', {
+        userId: message.author.id,
+        resetIn: error.rateLimit.resetIn,
+      });
+      await message.reply(
+        `**Brain API Rate Limit**\nToo many requests. Resets in ${error.rateLimit.resetIn} seconds.`
+      );
+      return;
+    }
+
     logger.error('Error handling chat message', { userId: message.author.id, error });
 
     const errorMessage =
@@ -88,34 +137,46 @@ export async function handleChatMessage(message: Message): Promise<void> {
 async function gatherContext(query: string): Promise<string> {
   const parts: string[] = [];
 
-  // Search brain for relevant notes
-  const searchResults = await searchBrain(query);
-  if (searchResults.length > 0) {
-    parts.push('**Relevant Notes:**');
-    for (const note of searchResults.slice(0, 5)) {
-      const preview = note.content.slice(0, 200);
-      const suffix = note.content.length > 200 ? '...' : '';
-      parts.push(`- ${preview}${suffix}`);
+  try {
+    // Search brain for relevant notes
+    const searchResults = await searchBrain(query);
+    if (searchResults.length > 0) {
+      parts.push('**Relevant Notes:**');
+      for (const note of searchResults.slice(0, 5)) {
+        const preview = note.content.slice(0, 200);
+        const suffix = note.content.length > 200 ? '...' : '';
+        parts.push(`- ${preview}${suffix}`);
+      }
     }
-  }
 
-  // Get recent notes
-  const recent = await getRecentNotes(5);
-  if (recent.length > 0) {
-    parts.push('\n**Recent Notes:**');
-    for (const note of recent) {
-      const preview = note.content.slice(0, 100);
-      const suffix = note.content.length > 100 ? '...' : '';
-      parts.push(`- [${note.created_at}] ${preview}${suffix}`);
+    // Get recent notes
+    const recent = await getRecentNotes(5);
+    if (recent.length > 0) {
+      parts.push('\n**Recent Notes:**');
+      for (const note of recent) {
+        const preview = note.content.slice(0, 100);
+        const suffix = note.content.length > 100 ? '...' : '';
+        parts.push(`- [${note.created_at}] ${preview}${suffix}`);
+      }
     }
-  }
 
-  // Get active tasks
-  const tasks = await getActiveTasks();
-  if (tasks.length > 0) {
-    parts.push('\n**Active Tasks:**');
-    for (const task of tasks) {
-      parts.push(`- ${task.id}: ${task.title} (${task.status})`);
+    // Get active tasks
+    const tasks = await getActiveTasks();
+    if (tasks.length > 0) {
+      parts.push('\n**Active Tasks:**');
+      for (const task of tasks) {
+        parts.push(`- ${task.id}: ${task.title} (${task.status})`);
+      }
+    }
+  } catch (error) {
+    // If Brain API fails (including rate limits), continue without context
+    if (error instanceof RateLimitError) {
+      logger.warn('Brain API rate limited during context gathering', {
+        resetIn: error.rateLimit.resetIn,
+      });
+      parts.push('*Brain API rate limited - proceeding without context*');
+    } else {
+      logger.warn('Failed to gather Brain context', { error });
     }
   }
 
