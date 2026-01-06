@@ -6,6 +6,19 @@ import { ParsedTask, TaskDiff, QueuedTask } from '../types';
 import { parseTask } from './parser';
 import { diffTasks, hasMeaningfulChanges } from './differ';
 
+/**
+ * Check if a parsed task represents a cleared/placeholder state
+ * (i.e., ACTIVE.md was cleared after task completion)
+ */
+function isPlaceholderTask(task: ParsedTask): boolean {
+  return (
+    task.id === 'UNKNOWN' ||
+    task.title === 'None' ||
+    task.title === 'No Active Task' ||
+    task.metadata.status === 'UNKNOWN'
+  );
+}
+
 export interface VaultMonitorEvents {
   taskActivated: (task: ParsedTask) => void;
   taskUpdated: (task: ParsedTask, diff: TaskDiff) => void;
@@ -122,9 +135,16 @@ export class VaultMonitor extends EventEmitter {
 
       if (hasMeaningfulChanges(diff)) {
         if (diff.isNewTask) {
-          this.emit('taskActivated', newTask);
+          // Don't emit taskActivated for placeholder/cleared state
+          if (!isPlaceholderTask(newTask)) {
+            this.emit('taskActivated', newTask);
+          }
         } else {
-          this.emit('taskUpdated', newTask, diff);
+          // Don't emit taskUpdated when transitioning to placeholder/cleared state
+          // This happens when a task is approved and ACTIVE.md is cleared
+          if (!isPlaceholderTask(newTask)) {
+            this.emit('taskUpdated', newTask, diff);
+          }
         }
       }
 
