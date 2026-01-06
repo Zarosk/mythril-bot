@@ -239,6 +239,98 @@ export async function createTask(
   }
 }
 
+// User subscription management
+
+export interface UnsubscribeResult {
+  success: boolean;
+  alreadyUnsubscribed?: boolean;
+  error?: string;
+}
+
+export interface ResubscribeResult {
+  success: boolean;
+  alreadySubscribed?: boolean;
+  error?: string;
+}
+
+export interface DeleteUserDataResult {
+  success: boolean;
+  deleted?: {
+    notes: number;
+    subscriptions: number;
+  };
+  error?: string;
+}
+
+export async function unsubscribeUser(discordId: string): Promise<UnsubscribeResult> {
+  try {
+    const result = await brainFetch<{ success: boolean; alreadyUnsubscribed?: boolean }>(
+      `/api/v1/users/${discordId}/unsubscribe`,
+      { method: 'POST' }
+    );
+    return {
+      success: result.data.success,
+      alreadyUnsubscribed: result.data.alreadyUnsubscribed,
+    };
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
+    logger.error('Brain unsubscribe failed', { discordId, error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function resubscribeUser(discordId: string): Promise<ResubscribeResult> {
+  try {
+    const result = await brainFetch<{ success: boolean; alreadySubscribed?: boolean }>(
+      `/api/v1/users/${discordId}/resubscribe`,
+      { method: 'POST' }
+    );
+    return {
+      success: result.data.success,
+      alreadySubscribed: result.data.alreadySubscribed,
+    };
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
+    logger.error('Brain resubscribe failed', { discordId, error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+export async function deleteUserData(discordId: string): Promise<DeleteUserDataResult> {
+  try {
+    const result = await brainFetch<{
+      success: boolean;
+      deleted: { notes: number; subscriptions: number };
+    }>(
+      `/api/v1/users/${discordId}/data`,
+      { method: 'DELETE' }
+    );
+    return {
+      success: result.data.success,
+      deleted: result.data.deleted,
+    };
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      throw error;
+    }
+    logger.error('Brain delete user data failed', { discordId, error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 /**
  * Format a rate limit warning message for Discord
  */
