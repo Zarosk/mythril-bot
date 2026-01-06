@@ -33,6 +33,10 @@ import {
   formatCooldownMessage,
   sanitizeInput,
 } from '../utils/security';
+import { handleUnsubscribe } from './commands/unsubscribe';
+import { handleDeleteData } from './commands/delete-data';
+import { handleResubscribe } from './commands/resubscribe';
+import { buildFeedbackCommand, handleFeedbackCommand } from './commands/feedback';
 
 // Forward declaration for OadsBot to avoid circular imports
 interface OadsBotInterface {
@@ -162,9 +166,24 @@ export function registerSlashCommands(): RESTPostAPIChatInputApplicationCommands
             .setDescription('Optional project name')
             .setRequired(false)
         )
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName('unsubscribe')
+        .setDescription('Stop receiving notifications (your data is preserved)')
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName('resubscribe')
+        .setDescription('Start receiving notifications again')
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName('delete-my-data')
+        .setDescription('Permanently delete all your data (requires confirmation)')
     );
 
-  return [oadsCommand.toJSON()];
+  return [oadsCommand.toJSON(), buildFeedbackCommand()];
 }
 
 /**
@@ -178,6 +197,12 @@ export async function handleSlashCommand(
   config: Config,
   bot: OadsBotInterface
 ): Promise<void> {
+  // Handle feedback command separately
+  if (interaction.commandName === 'feedback') {
+    await handleFeedbackCommand(interaction);
+    return;
+  }
+
   if (interaction.commandName !== 'oads') return;
 
   const subcommand = interaction.options.getSubcommand();
@@ -242,6 +267,15 @@ export async function handleSlashCommand(
         break;
       case 'brain':
         await handleBrain(interaction, config);
+        break;
+      case 'unsubscribe':
+        await handleUnsubscribe(interaction);
+        break;
+      case 'resubscribe':
+        await handleResubscribe(interaction);
+        break;
+      case 'delete-my-data':
+        await handleDeleteData(interaction);
         break;
       default:
         await interaction.reply({
@@ -574,6 +608,18 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
       title: '/oads brain <content> [project]',
       description: 'Add a note to the brain.\n\n**Options:**\n• `content` - Note content (required)\n• `project` - Optional project name\n\nNotes are stored via the Brain API.',
     },
+    unsubscribe: {
+      title: '/oads unsubscribe',
+      description: 'Stop receiving notifications from the bot.\n\nYour data is preserved and you can resubscribe at any time using `/oads resubscribe`.',
+    },
+    resubscribe: {
+      title: '/oads resubscribe',
+      description: 'Start receiving notifications again after unsubscribing.\n\nRe-enables all notifications that were disabled by `/oads unsubscribe`.',
+    },
+    'delete-my-data': {
+      title: '/oads delete-my-data',
+      description: 'Permanently delete all your data.\n\n**Warning:** This action cannot be undone!\n\nYou will be asked to type "CONFIRM DELETE" to proceed.',
+    },
   };
 
   if (command && commandHelp[command]) {
@@ -608,6 +654,11 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
 
 **Brain**
 \`/oads brain <content> [project]\` - Add a note to the brain
+
+**User Settings**
+\`/oads unsubscribe\` - Stop receiving notifications
+\`/oads resubscribe\` - Start receiving notifications again
+\`/oads delete-my-data\` - Permanently delete all your data
 
 Use \`/oads help <command>\` for detailed info on any command.
 `;
