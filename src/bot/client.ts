@@ -15,6 +15,7 @@ import { DiscordStreamer } from '../executor/discord-streamer';
 import { handleCommand } from './commands';
 import { registerSlashCommands, handleSlashCommand, handleAutocomplete } from './slash-commands';
 import { handleChatMessage } from './chat-handler';
+import { handleGuildCreate } from './events/guildCreate';
 import {
   createTaskActivatedEmbed,
   createStatusUpdateEmbed,
@@ -62,6 +63,10 @@ export class OadsBot {
       if (this.config.slashCommands.enabled) {
         await this.registerCommands();
       }
+    });
+
+    this.client.on('guildCreate', (guild) => {
+      handleGuildCreate(guild);
     });
 
     this.client.on('messageCreate', (message: Message) => {
