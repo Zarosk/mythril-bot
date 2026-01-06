@@ -6,8 +6,10 @@ Discord bot that serves as the orchestration layer for OADS (Obsidian-Augmented 
 
 - **Vault Monitoring** - Watches `_orchestra/ACTIVE.md` for changes using chokidar
 - **Status Broadcasting** - Posts task status updates to Discord with rich embeds
-- **Command Interface** - Accepts commands to check status and queue
+- **Slash Commands** - Modern `/oads` commands with autocomplete support
+- **Real-time Streaming** - Streams Claude Code output to Discord in real-time
 - **Execution Logging** - Posts execution log updates to a thread per task
+- **Approval Workflow** - Approve or reject completed tasks with notes
 
 ## Installation
 
@@ -30,13 +32,26 @@ cp .env.example .env
 Create a `.env` file with the following variables:
 
 ```env
+# Required Discord Configuration
 DISCORD_BOT_TOKEN=your_bot_token
 DISCORD_GUILD_ID=your_server_id
 DISCORD_COMMANDS_CHANNEL_ID=channel_for_commands
 DISCORD_STATUS_CHANNEL_ID=channel_for_status_updates
 DISCORD_ALERTS_CHANNEL_ID=channel_for_alerts
 DISCORD_DECISIONS_CHANNEL_ID=channel_for_decisions
+
+# Required Paths
 OBSIDIAN_VAULT_PATH=C:\path\to\your\vault
+CODE_PROJECTS_PATH=C:\path\to\projects
+
+# Optional: Streaming Configuration
+STREAMING_ENABLED=true              # Enable real-time output streaming
+STREAM_BUFFER_MS=1500               # Buffer interval in ms
+STREAM_MAX_CHARS=1500               # Force flush threshold
+
+# Optional: Slash Command Configuration
+REGISTER_SLASH_COMMANDS=true        # Auto-register slash commands
+DEPRECATE_PREFIX_COMMANDS=true      # Show deprecation warnings for !oads
 ```
 
 ## Usage
@@ -54,32 +69,53 @@ npm start
 
 ## Discord Commands
 
-### Status & Info
+### Slash Commands (Recommended)
+
+| Command | Description |
+|---------|-------------|
+| `/oads status` | Show current active task status |
+| `/oads queue` | List queued tasks |
+| `/oads list [filter]` | List tasks with optional filter |
+| `/oads start` | Start Claude Code execution on active task |
+| `/oads stop [reason]` | Stop Claude Code execution gracefully |
+| `/oads approve [notes]` | Approve task completion |
+| `/oads reject <reason>` | Reject task and request retry |
+| `/oads pick <task>` | Pick a task from the queue (Tab for autocomplete) |
+| `/oads help [command]` | Show help for commands |
+
+### Prefix Commands (Deprecated)
+
+Prefix commands (`!oads`) are still supported for backwards compatibility but will show a deprecation warning. Use slash commands instead.
+
 | Command | Description |
 |---------|-------------|
 | `!oads status` | Show current active task status |
 | `!oads queue` | List queued tasks |
 | `!oads help` | Show available commands |
+| `!oads start` | Start Claude Code execution |
+| `!oads stop [reason]` | Stop Claude Code execution |
+| `!oads approve [notes]` | Approve task completion |
+| `!oads reject <reason>` | Reject task (reason required) |
 
-### Execution Control
-| Command | Description |
-|---------|-------------|
-| `!oads start` | Start Claude Code execution on active task |
-| `!oads stop [reason]` | Stop Claude Code execution gracefully |
+## Output Streaming
 
-### Approval Workflow
-| Command | Description |
-|---------|-------------|
-| `!oads approve [notes]` | Approve task completion and move to completed |
-| `!oads reject <reason>` | Reject task and request retry (reason required) |
+When Claude Code is running, output is streamed to Discord in real-time:
+
+- Output is buffered for 1-2 seconds before posting (avoids spam)
+- Long outputs are automatically split into multiple messages
+- Code block formatting is applied automatically
+- Typing indicator shows while execution is active
+- Final summary message shows completion status and duration
 
 ## How It Works
 
-1. Bot connects to Discord and starts watching the vault's `_orchestra` directory
-2. When `ACTIVE.md` changes, the bot parses the markdown and detects changes
-3. Status changes and new acceptance criteria completions are posted to the status channel
-4. Execution log entries are posted to a thread associated with the task
-5. When tasks are moved to `completed/` or `blocked/`, appropriate messages are posted
+1. Bot connects to Discord and registers slash commands
+2. Bot starts watching the vault's `_orchestra` directory
+3. When `ACTIVE.md` changes, the bot parses the markdown and detects changes
+4. Status changes and acceptance criteria updates are posted to the status channel
+5. When `/oads start` is called, Claude Code begins execution with real-time streaming
+6. Execution log entries are posted to a thread associated with the task
+7. When tasks are moved to `completed/` or `blocked/`, appropriate messages are posted
 
 ## Development
 
@@ -104,15 +140,18 @@ oads-discord-bot/
 │   ├── types.ts              # TypeScript interfaces
 │   ├── bot/
 │   │   ├── client.ts         # Discord.js client setup
-│   │   ├── commands.ts       # Command handlers
+│   │   ├── commands.ts       # Prefix command handlers (deprecated)
+│   │   ├── slash-commands.ts # Slash command handlers
 │   │   └── embeds.ts         # Message formatting
 │   ├── executor/
-│   │   ├── process-manager.ts # Claude Code subprocess control
-│   │   └── output-parser.ts   # Parse execution output
+│   │   ├── process-manager.ts  # Claude Code subprocess control
+│   │   ├── output-parser.ts    # Parse execution output
+│   │   ├── stream-buffer.ts    # Buffer for output streaming
+│   │   └── discord-streamer.ts # Stream output to Discord
 │   ├── workflow/
-│   │   ├── state-machine.ts   # Task state transitions
+│   │   ├── state-machine.ts    # Task state transitions
 │   │   ├── approval-service.ts # Approve/reject logic
-│   │   └── file-mover.ts      # Move completed/blocked tasks
+│   │   └── file-mover.ts       # Move completed/blocked tasks
 │   └── watcher/
 │       ├── vault-monitor.ts  # File system watcher
 │       ├── parser.ts         # Markdown task parser
@@ -121,9 +160,12 @@ oads-discord-bot/
 │   ├── parser.test.ts
 │   ├── differ.test.ts
 │   ├── state-machine.test.ts
-│   └── approval.test.ts
+│   ├── approval.test.ts
+│   ├── stream-buffer.test.ts
+│   └── slash-commands.test.ts
 ├── package.json
 ├── tsconfig.json
+├── CHANGELOG.md
 └── CLAUDE.md
 ```
 

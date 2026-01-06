@@ -15,6 +15,11 @@ import {
 
 const COMMAND_PREFIX = '!oads';
 
+// Forward declaration for OadsBot to avoid circular imports
+interface OadsBotInterface {
+  startStreaming(): Promise<void>;
+}
+
 export interface CommandContext {
   message: Message;
   args: string[];
@@ -22,6 +27,7 @@ export interface CommandContext {
   processManager: ProcessManager;
   approvalService: ApprovalService;
   config: Config;
+  bot?: OadsBotInterface;
 }
 
 type CommandHandler = (ctx: CommandContext) => Promise<void>;
@@ -41,7 +47,8 @@ export async function handleCommand(
   vaultMonitor: VaultMonitor,
   processManager: ProcessManager,
   approvalService: ApprovalService,
-  config: Config
+  config: Config,
+  bot?: OadsBotInterface
 ): Promise<boolean> {
   const content = message.content.trim();
 
@@ -64,8 +71,16 @@ export async function handleCommand(
     return true;
   }
 
+  // Show deprecation warning if enabled
+  if (config.slashCommands.deprecatePrefixCommands) {
+    await message.reply({
+      content: `⚠️ **Deprecation Notice:** Prefix commands (\`!oads\`) are deprecated. Please use slash commands (\`/oads\`) instead.\n_This warning will be shown until you switch to slash commands._`,
+      allowedMentions: { repliedUser: false },
+    });
+  }
+
   try {
-    await handler({ message, args, vaultMonitor, processManager, approvalService, config });
+    await handler({ message, args, vaultMonitor, processManager, approvalService, config, bot });
   } catch (error) {
     console.error(`[Commands] Error handling command ${commandName}:`, error);
     await message.reply('An error occurred while processing your command.');
@@ -129,6 +144,10 @@ async function handleStart(ctx: CommandContext): Promise<void> {
   }
 
   try {
+    // Start streaming before starting the process
+    if (ctx.bot) {
+      await ctx.bot.startStreaming();
+    }
     await ctx.processManager.start(task);
     const embed = createExecutionStartedEmbed(task);
     await ctx.message.reply({ embeds: [embed] });

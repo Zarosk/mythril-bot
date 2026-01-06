@@ -4,12 +4,16 @@ import {
   TextChannel,
   Message,
   ThreadChannel,
+  REST,
+  Routes,
 } from 'discord.js';
 import { Config, ParsedTask, TaskDiff, QueuedTask } from '../types';
 import { VaultMonitor } from '../watcher/vault-monitor';
 import { ProcessManager } from '../executor/process-manager';
 import { ApprovalService } from '../workflow/approval-service';
+import { DiscordStreamer } from '../executor/discord-streamer';
 import { handleCommand } from './commands';
+import { registerSlashCommands, handleSlashCommand, handleAutocomplete } from './slash-commands';
 import {
   createTaskActivatedEmbed,
   createStatusUpdateEmbed,
@@ -28,6 +32,8 @@ export class OadsBot {
   private statusChannel: TextChannel | null = null;
   private commandsChannel: TextChannel | null = null;
   private activeThread: ThreadChannel | null = null;
+  private activeStreamer: DiscordStreamer | null = null;
+  private executionStartTime: Date | null = null;
 
   constructor(config: Config) {
     this.config = config;
@@ -46,13 +52,34 @@ export class OadsBot {
   }
 
   private setupEventHandlers(): void {
-    this.client.on('ready', () => {
+    this.client.on('ready', async () => {
       console.log(`[OadsBot] Logged in as ${this.client.user?.tag}`);
-      this.initializeChannels();
+      await this.initializeChannels();
+
+      // Register slash commands if enabled
+      if (this.config.slashCommands.enabled) {
+        await this.registerCommands();
+      }
     });
 
     this.client.on('messageCreate', (message: Message) => {
       this.handleMessage(message);
+    });
+
+    // Handle slash command interactions
+    this.client.on('interactionCreate', async (interaction) => {
+      if (interaction.isChatInputCommand()) {
+        await handleSlashCommand(
+          interaction,
+          this.vaultMonitor,
+          this.processManager,
+          this.approvalService,
+          this.config,
+          this
+        );
+      } else if (interaction.isAutocomplete()) {
+        await handleAutocomplete(interaction, this.vaultMonitor);
+      }
     });
 
     // Vault monitor events
@@ -79,6 +106,48 @@ export class OadsBot {
     this.vaultMonitor.on('error', (error: Error) => {
       console.error('[OadsBot] Vault monitor error:', error);
     });
+
+    // Process manager events for streaming
+    this.processManager.on('started', () => {
+      this.executionStartTime = new Date();
+    });
+
+    this.processManager.on('output', (data: string) => {
+      if (this.activeStreamer) {
+        this.activeStreamer.append(data);
+      }
+    });
+
+    this.processManager.on('completed', async (exitCode: number | null) => {
+      await this.handleExecutionCompleted(exitCode);
+    });
+
+    this.processManager.on('stopped', async (reason?: string) => {
+      await this.handleExecutionStopped(reason);
+    });
+
+    this.processManager.on('error', (error: Error) => {
+      console.error('[OadsBot] Process error:', error);
+    });
+  }
+
+  private async registerCommands(): Promise<void> {
+    try {
+      const commands = registerSlashCommands();
+      const rest = new REST({ version: '10' }).setToken(this.config.discord.token);
+
+      console.log('[OadsBot] Registering slash commands...');
+      await rest.put(
+        Routes.applicationGuildCommands(
+          this.client.user!.id,
+          this.config.discord.guildId
+        ),
+        { body: commands }
+      );
+      console.log('[OadsBot] Slash commands registered successfully');
+    } catch (error) {
+      console.error('[OadsBot] Failed to register slash commands:', error);
+    }
   }
 
   private async initializeChannels(): Promise<void> {
@@ -113,7 +182,8 @@ export class OadsBot {
       this.vaultMonitor,
       this.processManager,
       this.approvalService,
-      this.config
+      this.config,
+      this
     );
   }
 
@@ -199,6 +269,62 @@ export class OadsBot {
     }
   }
 
+  private async handleExecutionCompleted(exitCode: number | null): Promise<void> {
+    await this.stopStreamer(exitCode);
+  }
+
+  private async handleExecutionStopped(_reason?: string): Promise<void> {
+    await this.stopStreamer(null);
+  }
+
+  private async stopStreamer(exitCode: number | null): Promise<void> {
+    if (this.activeStreamer) {
+      try {
+        const duration = this.executionStartTime
+          ? Date.now() - this.executionStartTime.getTime()
+          : 0;
+        await this.activeStreamer.stop();
+        await this.activeStreamer.sendSummary(exitCode, duration);
+      } catch (error) {
+        console.error('[OadsBot] Error stopping streamer:', error);
+      }
+      this.activeStreamer = null;
+    }
+    this.executionStartTime = null;
+  }
+
+  /**
+   * Start streaming output to the active thread
+   * Called when execution begins
+   */
+  async startStreaming(): Promise<void> {
+    if (!this.activeThread || !this.config.streaming.enabled) {
+      return;
+    }
+
+    // Stop any existing streamer
+    if (this.activeStreamer) {
+      await this.activeStreamer.stop();
+    }
+
+    this.activeStreamer = new DiscordStreamer({
+      channel: this.activeThread,
+      flushIntervalMs: this.config.streaming.bufferIntervalMs,
+      maxBufferSize: this.config.streaming.maxBufferSize,
+      useCodeBlocks: true,
+    });
+
+    await this.activeStreamer.start();
+    console.log('[OadsBot] Started output streaming');
+  }
+
+  /**
+   * Get the active thread for execution output
+   */
+  getActiveThread(): ThreadChannel | null {
+    return this.activeThread;
+  }
+
   async start(): Promise<void> {
     console.log('[OadsBot] Starting...');
 
@@ -210,6 +336,12 @@ export class OadsBot {
 
   async stop(): Promise<void> {
     console.log('[OadsBot] Stopping...');
+
+    // Stop streamer if running
+    if (this.activeStreamer) {
+      await this.activeStreamer.stop();
+      this.activeStreamer = null;
+    }
 
     // Stop Claude Code process if running
     if (this.processManager.isRunning()) {

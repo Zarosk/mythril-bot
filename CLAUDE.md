@@ -19,11 +19,14 @@ src/
 ├── types.ts              # TypeScript interfaces
 ├── bot/
 │   ├── client.ts         # Discord.js client and event handlers
-│   ├── commands.ts       # !oads command handlers
+│   ├── commands.ts       # !oads command handlers (deprecated)
+│   ├── slash-commands.ts # /oads slash command handlers
 │   └── embeds.ts         # Discord embed builders
 ├── executor/
-│   ├── process-manager.ts # Claude Code subprocess control
-│   └── output-parser.ts   # Parse execution output
+│   ├── process-manager.ts  # Claude Code subprocess control
+│   ├── output-parser.ts    # Parse execution output
+│   ├── stream-buffer.ts    # Buffer for output streaming
+│   └── discord-streamer.ts # Stream output to Discord
 ├── workflow/
 │   ├── state-machine.ts   # Task state transitions
 │   ├── approval-service.ts # Approve/reject logic
@@ -51,22 +54,37 @@ Uses MD5 hash of file content to detect changes. When content changes:
 
 ### Discord Integration
 - Main channel: Task activation/completion/blocking messages
-- Thread per task: Execution log updates
-- Commands channel: Responds to `!oads` commands
+- Thread per task: Execution log updates and real-time streaming
+- Commands channel: Responds to `/oads` slash commands
+
+### Output Streaming
+When Claude Code executes, output is streamed to Discord:
+1. `StreamBuffer` batches output (1.5s interval, 1500 char threshold)
+2. `DiscordStreamer` posts to thread with code block formatting
+3. Long outputs are split into multiple messages
+4. Typing indicator shows during execution
+5. Summary message on completion
 
 ## Commands
-### Status & Info
-- `!oads status` - Show current active task
-- `!oads queue` - List queued tasks
-- `!oads help` - Show help
 
-### Execution Control
-- `!oads start` - Start Claude Code execution on active task
-- `!oads stop [reason]` - Stop Claude Code execution gracefully
+### Slash Commands (Recommended)
+| Command | Description |
+|---------|-------------|
+| `/oads status` | Show current active task |
+| `/oads queue` | List queued tasks |
+| `/oads list [filter]` | List tasks with optional filter |
+| `/oads start` | Start Claude Code execution |
+| `/oads stop [reason]` | Stop execution gracefully |
+| `/oads approve [notes]` | Approve task completion |
+| `/oads reject <reason>` | Reject task (reason required) |
+| `/oads pick <task>` | Pick task from queue (Tab for autocomplete) |
+| `/oads help [command]` | Show help |
+| `/oads brain <content> [project]` | Add a note to the brain |
 
-### Approval Workflow
-- `!oads approve [notes]` - Approve task completion
-- `!oads reject <reason>` - Reject task for retry (reason required)
+### Prefix Commands (Deprecated)
+- `!oads status`, `!oads queue`, `!oads help`
+- `!oads start`, `!oads stop [reason]`
+- `!oads approve [notes]`, `!oads reject <reason>`
 
 ## Environment Variables
 Required in `.env`:
@@ -74,7 +92,19 @@ Required in `.env`:
 - `DISCORD_GUILD_ID`
 - `DISCORD_COMMANDS_CHANNEL_ID`
 - `DISCORD_STATUS_CHANNEL_ID`
+- `DISCORD_ALERTS_CHANNEL_ID`
+- `DISCORD_DECISIONS_CHANNEL_ID`
 - `OBSIDIAN_VAULT_PATH`
+- `CODE_PROJECTS_PATH`
+
+Optional:
+- `STREAMING_ENABLED=true` - Enable real-time streaming
+- `STREAM_BUFFER_MS=1500` - Buffer flush interval
+- `STREAM_MAX_CHARS=1500` - Force flush threshold
+- `REGISTER_SLASH_COMMANDS=true` - Auto-register slash commands
+- `DEPRECATE_PREFIX_COMMANDS=true` - Show deprecation warnings
+- `BRAIN_API_URL=http://localhost:3000` - Brain API base URL
+- `BRAIN_API_KEY` - API key for Brain authentication
 
 ## Testing
 ```bash

@@ -39,6 +39,12 @@ export interface TaskDiff {
   isNewTask: boolean;
 }
 
+export interface StreamingConfig {
+  bufferIntervalMs: number;
+  maxBufferSize: number;
+  enabled: boolean;
+}
+
 export interface Config {
   discord: {
     token: string;
@@ -57,6 +63,15 @@ export interface Config {
     logLevel: string;
     maxConcurrentInstances: number;
     pollIntervalMs: number;
+  };
+  streaming: StreamingConfig;
+  slashCommands: {
+    enabled: boolean;
+    deprecatePrefixCommands: boolean;
+  };
+  brainApi: {
+    url: string;
+    apiKey: string;
   };
 }
 

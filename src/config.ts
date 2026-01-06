@@ -35,6 +35,19 @@ export function loadConfig(): Config {
       maxConcurrentInstances: parseInt(optionalEnv('MAX_CONCURRENT_INSTANCES', '3'), 10),
       pollIntervalMs: parseInt(optionalEnv('POLL_INTERVAL_MS', '5000'), 10),
     },
+    streaming: {
+      enabled: optionalEnv('STREAMING_ENABLED', 'true') === 'true',
+      bufferIntervalMs: parseInt(optionalEnv('STREAM_BUFFER_MS', '1500'), 10),
+      maxBufferSize: parseInt(optionalEnv('STREAM_MAX_CHARS', '1500'), 10),
+    },
+    slashCommands: {
+      enabled: optionalEnv('REGISTER_SLASH_COMMANDS', 'true') === 'true',
+      deprecatePrefixCommands: optionalEnv('DEPRECATE_PREFIX_COMMANDS', 'true') === 'true',
+    },
+    brainApi: {
+      url: optionalEnv('BRAIN_API_URL', 'http://localhost:3000'),
+      apiKey: optionalEnv('BRAIN_API_KEY', ''),
+    },
   };
 }
 

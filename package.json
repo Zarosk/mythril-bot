@@ -1,6 +1,6 @@
 {
   "name": "oads-discord-bot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Discord orchestration bot for OADS - monitors vault and posts status updates",
   "main": "dist/index.js",
   "scripts": {
@@ -8,9 +8,15 @@
     "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
     "lint": "eslint src --ext .ts",
-    "test": "jest"
+    "test": "jest",
+    "notify": "tsx scripts/notify-complete.ts"
   },
-  "keywords": ["discord", "bot", "oads", "orchestration"],
+  "keywords": [
+    "discord",
+    "bot",
+    "oads",
+    "orchestration"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -28,6 +34,7 @@
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3"
   }
 }
