@@ -1,8 +1,16 @@
 import { Message } from 'discord.js';
 import { VaultMonitor } from '../watcher/vault-monitor';
+import { ProcessManager } from '../executor/process-manager';
+import { ApprovalService } from '../workflow/approval-service';
+import { TaskStatus, parseStatus, canTransition } from '../workflow/state-machine';
+import { Config } from '../types';
 import {
   createCurrentStatusEmbed,
   createQueueListEmbed,
+  createExecutionStartedEmbed,
+  createExecutionStoppedEmbed,
+  createApprovalEmbed,
+  createRejectionEmbed,
 } from './embeds';
 
 const COMMAND_PREFIX = '!oads';
@@ -11,6 +19,9 @@ export interface CommandContext {
   message: Message;
   args: string[];
   vaultMonitor: VaultMonitor;
+  processManager: ProcessManager;
+  approvalService: ApprovalService;
+  config: Config;
 }
 
 type CommandHandler = (ctx: CommandContext) => Promise<void>;
@@ -19,11 +30,18 @@ const commands: Record<string, CommandHandler> = {
   status: handleStatus,
   queue: handleQueue,
   help: handleHelp,
+  start: handleStart,
+  stop: handleStop,
+  approve: handleApprove,
+  reject: handleReject,
 };
 
 export async function handleCommand(
   message: Message,
-  vaultMonitor: VaultMonitor
+  vaultMonitor: VaultMonitor,
+  processManager: ProcessManager,
+  approvalService: ApprovalService,
+  config: Config
 ): Promise<boolean> {
   const content = message.content.trim();
 
@@ -47,7 +65,7 @@ export async function handleCommand(
   }
 
   try {
-    await handler({ message, args, vaultMonitor });
+    await handler({ message, args, vaultMonitor, processManager, approvalService, config });
   } catch (error) {
     console.error(`[Commands] Error handling command ${commandName}:`, error);
     await message.reply('An error occurred while processing your command.');
@@ -68,16 +86,132 @@ async function handleQueue(ctx: CommandContext): Promise<void> {
   await ctx.message.reply({ embeds: [embed] });
 }
 
-async function handleHelp(_ctx: CommandContext): Promise<void> {
+async function handleHelp(ctx: CommandContext): Promise<void> {
   const helpText = `
 **OADS Bot Commands**
 
+**Status & Info**
 \`!oads status\` - Show current active task status
 \`!oads queue\` - List queued tasks
 \`!oads help\` - Show this help message
 
-*Note: activate, block, complete, and history commands are planned for future releases.*
+**Execution Control**
+\`!oads start\` - Start Claude Code execution on active task
+\`!oads stop [reason]\` - Stop Claude Code execution gracefully
+
+**Approval Workflow**
+\`!oads approve [notes]\` - Approve task completion
+\`!oads reject <reason>\` - Reject task and request retry (reason required)
 `;
 
-  await _ctx.message.reply(helpText);
+  await ctx.message.reply(helpText);
+}
+
+async function handleStart(ctx: CommandContext): Promise<void> {
+  const task = ctx.vaultMonitor.getCurrentTask();
+
+  if (!task) {
+    await ctx.message.reply('No active task. Activate a task first.');
+    return;
+  }
+
+  // Check if already executing
+  if (ctx.processManager.isRunning()) {
+    await ctx.message.reply('Claude Code is already running. Use `!oads stop` to halt it first.');
+    return;
+  }
+
+  // Validate task status
+  const status = parseStatus(task.metadata.status);
+  if (!status || !canTransition(status, TaskStatus.EXECUTING)) {
+    await ctx.message.reply(`Cannot start task in ${task.metadata.status} status. Task must be IN_PROGRESS.`);
+    return;
+  }
+
+  try {
+    await ctx.processManager.start(task);
+    const embed = createExecutionStartedEmbed(task);
+    await ctx.message.reply({ embeds: [embed] });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    await ctx.message.reply(`Failed to start Claude Code: ${errorMsg}`);
+  }
+}
+
+async function handleStop(ctx: CommandContext): Promise<void> {
+  const reason = ctx.args.join(' ') || undefined;
+
+  if (!ctx.processManager.isRunning()) {
+    await ctx.message.reply('Claude Code is not currently running.');
+    return;
+  }
+
+  try {
+    await ctx.processManager.stop(reason);
+    const task = ctx.vaultMonitor.getCurrentTask();
+    const embed = createExecutionStoppedEmbed(task, reason);
+    await ctx.message.reply({ embeds: [embed] });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    await ctx.message.reply(`Failed to stop Claude Code: ${errorMsg}`);
+  }
+}
+
+async function handleApprove(ctx: CommandContext): Promise<void> {
+  const task = ctx.vaultMonitor.getCurrentTask();
+
+  if (!task) {
+    await ctx.message.reply('No active task to approve.');
+    return;
+  }
+
+  // Check if still executing
+  if (ctx.processManager.isRunning()) {
+    await ctx.message.reply('Task is still executing. Stop execution first with `!oads stop`.');
+    return;
+  }
+
+  const approver = ctx.message.author.tag;
+  const notes = ctx.args.join(' ') || undefined;
+
+  const result = await ctx.approvalService.approve(task, approver, notes);
+
+  if (result.success) {
+    const embed = createApprovalEmbed(task, approver, notes);
+    await ctx.message.reply({ embeds: [embed] });
+  } else {
+    await ctx.message.reply(`Approval failed: ${result.message}`);
+  }
+}
+
+async function handleReject(ctx: CommandContext): Promise<void> {
+  const task = ctx.vaultMonitor.getCurrentTask();
+
+  if (!task) {
+    await ctx.message.reply('No active task to reject.');
+    return;
+  }
+
+  // Check if still executing
+  if (ctx.processManager.isRunning()) {
+    await ctx.message.reply('Task is still executing. Stop execution first with `!oads stop`.');
+    return;
+  }
+
+  const reason = ctx.args.join(' ');
+  if (!reason) {
+    await ctx.message.reply('Rejection requires a reason. Usage: `!oads reject <reason>`');
+    return;
+  }
+
+  const rejector = ctx.message.author.tag;
+
+  const result = await ctx.approvalService.reject(task, rejector, reason);
+
+  if (result.success) {
+    const embed = createRejectionEmbed(task, rejector, reason, result.retryCount || 1);
+    await ctx.message.reply({ embeds: [embed] });
+  } else {
+    await ctx.message.reply(`Rejection failed: ${result.message}`);
+  }
 }

@@ -54,11 +54,24 @@ npm start
 
 ## Discord Commands
 
+### Status & Info
 | Command | Description |
 |---------|-------------|
 | `!oads status` | Show current active task status |
 | `!oads queue` | List queued tasks |
 | `!oads help` | Show available commands |
+
+### Execution Control
+| Command | Description |
+|---------|-------------|
+| `!oads start` | Start Claude Code execution on active task |
+| `!oads stop [reason]` | Stop Claude Code execution gracefully |
+
+### Approval Workflow
+| Command | Description |
+|---------|-------------|
+| `!oads approve [notes]` | Approve task completion and move to completed |
+| `!oads reject <reason>` | Reject task and request retry (reason required) |
 
 ## How It Works
 
@@ -93,13 +106,22 @@ oads-discord-bot/
 │   │   ├── client.ts         # Discord.js client setup
 │   │   ├── commands.ts       # Command handlers
 │   │   └── embeds.ts         # Message formatting
+│   ├── executor/
+│   │   ├── process-manager.ts # Claude Code subprocess control
+│   │   └── output-parser.ts   # Parse execution output
+│   ├── workflow/
+│   │   ├── state-machine.ts   # Task state transitions
+│   │   ├── approval-service.ts # Approve/reject logic
+│   │   └── file-mover.ts      # Move completed/blocked tasks
 │   └── watcher/
 │       ├── vault-monitor.ts  # File system watcher
 │       ├── parser.ts         # Markdown task parser
 │       └── differ.ts         # Change detection
 ├── tests/
 │   ├── parser.test.ts
-│   └── differ.test.ts
+│   ├── differ.test.ts
+│   ├── state-machine.test.ts
+│   └── approval.test.ts
 ├── package.json
 ├── tsconfig.json
 └── CLAUDE.md

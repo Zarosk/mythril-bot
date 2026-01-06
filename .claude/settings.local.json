@@ -7,7 +7,9 @@
       "Bash(git checkout:*)",
       "Bash(npm run build:*)",
       "Bash(npm test:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(git commit:*)",
+      "Bash(curl -X POST \"https://discordapp.com/api/webhooks/1457907118886621319/Uoziz_0LFKasaPJRaYjPuBma7grkp_P2WErtoGYHSXoTeyMi_mFCjPMGlXYS-Ui9Y-nL\" -H \"Content-Type: application/json\" -d \"{\"\"embeds\"\":[{\"\"title\"\":\"\"OADS-003 Implementation Complete\"\",\"\"description\"\":\"\"Discord Bot Command Extensions implemented successfully.\"\",\"\"color\"\":65280,\"\"fields\"\":[{\"\"name\"\":\"\"New Commands\"\",\"\"value\"\":\"\"\\\\`!oads start\\\\` - Trigger Claude Code execution\\\\n\\\\`!oads stop [reason]\\\\` - Halt execution gracefully\\\\n\\\\`!oads approve [notes]\\\\` - Approve task completion\\\\n\\\\`!oads reject <reason>\\\\` - Reject task for retry\"\",\"\"inline\"\":false},{\"\"name\"\":\"\"Components Added\"\",\"\"value\"\":\"\"- State machine \\(workflow/state-machine.ts\\)\\\\n- Process manager \\(executor/process-manager.ts\\)\\\\n- Approval service \\(workflow/approval-service.ts\\)\\\\n- File mover \\(workflow/file-mover.ts\\)\\\\n- Output parser \\(executor/output-parser.ts\\)\"\",\"\"inline\"\":false},{\"\"name\"\":\"\"Test Results\"\",\"\"value\"\":\"\"45 tests passing \\(state-machine: 16, approval: 10, parser: 12, differ: 7\\)\"\",\"\"inline\"\":true},{\"\"name\"\":\"\"Build Status\"\",\"\"value\"\":\"\"Build: Pass\\\\nLint: Pass\\\\nTests: Pass\"\",\"\"inline\"\":true},{\"\"name\"\":\"\"Version\"\",\"\"value\"\":\"\"0.2.0\"\",\"\"inline\"\":true}],\"\"footer\"\":{\"\"text\"\":\"\"OADS Task Completed\"\"}}]}\")"
     ]
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "oads-discord-bot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Discord orchestration bot for OADS - monitors vault and posts status updates",
   "main": "dist/index.js",
   "scripts": {

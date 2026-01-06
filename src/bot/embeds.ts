@@ -8,6 +8,10 @@ const COLORS = {
   blocked: 0xff0000,    // Red
   queued: 0xffaa00,     // Orange
   update: 0x9966ff,     // Purple
+  executing: 0x00ccff,  // Cyan
+  stopped: 0xff9900,    // Dark Orange
+  approved: 0x00ff88,   // Light Green
+  rejected: 0xff4444,   // Light Red
 };
 
 export function createTaskActivatedEmbed(task: ParsedTask): EmbedBuilder {
@@ -154,4 +158,73 @@ export function createCurrentStatusEmbed(task: ParsedTask | null): EmbedBuilder 
   embed.setTimestamp();
 
   return embed;
+}
+
+export function createExecutionStartedEmbed(task: ParsedTask): EmbedBuilder {
+  return new EmbedBuilder()
+    .setColor(COLORS.executing)
+    .setTitle(`▶️ Execution Started: ${task.id}`)
+    .setDescription(task.title)
+    .addFields(
+      { name: 'Status', value: 'EXECUTING', inline: true },
+      { name: 'Project', value: task.metadata.project || 'N/A', inline: true }
+    )
+    .setTimestamp();
+}
+
+export function createExecutionStoppedEmbed(task: ParsedTask | null, reason?: string): EmbedBuilder {
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.stopped)
+    .setTitle(`⏹️ Execution Stopped${task ? `: ${task.id}` : ''}`)
+    .setTimestamp();
+
+  if (task) {
+    embed.setDescription(task.title);
+  }
+
+  if (reason) {
+    embed.addFields({ name: 'Reason', value: reason });
+  }
+
+  return embed;
+}
+
+export function createApprovalEmbed(
+  task: ParsedTask,
+  approver: string,
+  notes?: string
+): EmbedBuilder {
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.approved)
+    .setTitle(`✅ Task Approved: ${task.id}`)
+    .setDescription(task.title)
+    .addFields(
+      { name: 'Approved By', value: approver, inline: true },
+      { name: 'Status', value: 'COMPLETED', inline: true }
+    )
+    .setTimestamp();
+
+  if (notes) {
+    embed.addFields({ name: 'Notes', value: notes });
+  }
+
+  return embed;
+}
+
+export function createRejectionEmbed(
+  task: ParsedTask,
+  rejector: string,
+  reason: string,
+  retryCount: number
+): EmbedBuilder {
+  return new EmbedBuilder()
+    .setColor(COLORS.rejected)
+    .setTitle(`❌ Task Rejected: ${task.id}`)
+    .setDescription(task.title)
+    .addFields(
+      { name: 'Rejected By', value: rejector, inline: true },
+      { name: 'Retry #', value: retryCount.toString(), inline: true },
+      { name: 'Reason', value: reason }
+    )
+    .setTimestamp();
 }

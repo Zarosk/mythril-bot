@@ -7,6 +7,8 @@ import {
 } from 'discord.js';
 import { Config, ParsedTask, TaskDiff, QueuedTask } from '../types';
 import { VaultMonitor } from '../watcher/vault-monitor';
+import { ProcessManager } from '../executor/process-manager';
+import { ApprovalService } from '../workflow/approval-service';
 import { handleCommand } from './commands';
 import {
   createTaskActivatedEmbed,
@@ -21,6 +23,8 @@ export class OadsBot {
   private client: Client;
   private config: Config;
   private vaultMonitor: VaultMonitor;
+  private processManager: ProcessManager;
+  private approvalService: ApprovalService;
   private statusChannel: TextChannel | null = null;
   private commandsChannel: TextChannel | null = null;
   private activeThread: ThreadChannel | null = null;
@@ -35,6 +39,8 @@ export class OadsBot {
       ],
     });
     this.vaultMonitor = new VaultMonitor(config.paths.vaultPath);
+    this.processManager = new ProcessManager(config);
+    this.approvalService = new ApprovalService(config.paths.vaultPath);
 
     this.setupEventHandlers();
   }
@@ -102,7 +108,13 @@ export class OadsBot {
     // Only handle commands in the commands channel
     if (message.channel.id !== this.config.discord.commandsChannelId) return;
 
-    await handleCommand(message, this.vaultMonitor);
+    await handleCommand(
+      message,
+      this.vaultMonitor,
+      this.processManager,
+      this.approvalService,
+      this.config
+    );
   }
 
   private async handleTaskActivated(task: ParsedTask): Promise<void> {
@@ -198,6 +210,11 @@ export class OadsBot {
 
   async stop(): Promise<void> {
     console.log('[OadsBot] Stopping...');
+
+    // Stop Claude Code process if running
+    if (this.processManager.isRunning()) {
+      await this.processManager.stop('Bot shutdown');
+    }
 
     await this.vaultMonitor.stop();
     this.client.destroy();
