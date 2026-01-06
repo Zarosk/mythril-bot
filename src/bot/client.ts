@@ -14,6 +14,7 @@ import { ApprovalService } from '../workflow/approval-service';
 import { DiscordStreamer } from '../executor/discord-streamer';
 import { handleCommand } from './commands';
 import { registerSlashCommands, handleSlashCommand, handleAutocomplete } from './slash-commands';
+import { handleChatMessage } from './chat-handler';
 import {
   createTaskActivatedEmbed,
   createStatusUpdateEmbed,
@@ -173,6 +174,15 @@ export class OadsBot {
   private async handleMessage(message: Message): Promise<void> {
     // Ignore bot messages
     if (message.author.bot) return;
+
+    // Handle chat channel messages (conversational AI mode)
+    if (
+      this.config.discord.chatChannelId &&
+      message.channel.id === this.config.discord.chatChannelId
+    ) {
+      await handleChatMessage(message);
+      return;
+    }
 
     // Only handle commands in the commands channel
     if (message.channel.id !== this.config.discord.commandsChannelId) return;

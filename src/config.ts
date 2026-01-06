@@ -24,6 +24,10 @@ export function loadConfig(): Config {
       statusChannelId: requireEnv('DISCORD_STATUS_CHANNEL_ID'),
       alertsChannelId: requireEnv('DISCORD_ALERTS_CHANNEL_ID'),
       decisionsChannelId: requireEnv('DISCORD_DECISIONS_CHANNEL_ID'),
+      chatChannelId: optionalEnv('DISCORD_CHAT_CHANNEL_ID', ''),
+    },
+    anthropic: {
+      apiKey: optionalEnv('ANTHROPIC_API_KEY', ''),
     },
     paths: {
       vaultPath: requireEnv('OBSIDIAN_VAULT_PATH'),

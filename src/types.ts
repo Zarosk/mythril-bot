@@ -53,6 +53,10 @@ export interface Config {
     statusChannelId: string;
     alertsChannelId: string;
     decisionsChannelId: string;
+    chatChannelId: string;
+  };
+  anthropic: {
+    apiKey: string;
   };
   paths: {
     vaultPath: string;
