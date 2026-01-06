@@ -23,6 +23,7 @@ import {
   createTaskCompletedEmbed,
   createTaskBlockedEmbed,
 } from './embeds';
+import logger from '../utils/logger';
 
 export class OadsBot {
   private client: Client;
@@ -54,7 +55,7 @@ export class OadsBot {
 
   private setupEventHandlers(): void {
     this.client.on('ready', async () => {
-      console.log(`[OadsBot] Logged in as ${this.client.user?.tag}`);
+      logger.info('Logged in to Discord', { tag: this.client.user?.tag });
       await this.initializeChannels();
 
       // Register slash commands if enabled
@@ -105,7 +106,7 @@ export class OadsBot {
     });
 
     this.vaultMonitor.on('error', (error: Error) => {
-      console.error('[OadsBot] Vault monitor error:', error);
+      logger.error('Vault monitor error', { error: error.message, stack: error.stack });
     });
 
     // Process manager events for streaming
@@ -128,7 +129,7 @@ export class OadsBot {
     });
 
     this.processManager.on('error', (error: Error) => {
-      console.error('[OadsBot] Process error:', error);
+      logger.error('Process error', { error: error.message, stack: error.stack });
     });
   }
 
@@ -137,7 +138,7 @@ export class OadsBot {
       const commands = registerSlashCommands();
       const rest = new REST({ version: '10' }).setToken(this.config.discord.token);
 
-      console.log('[OadsBot] Registering slash commands...');
+      logger.info('Registering slash commands...');
       await rest.put(
         Routes.applicationGuildCommands(
           this.client.user!.id,
@@ -145,9 +146,9 @@ export class OadsBot {
         ),
         { body: commands }
       );
-      console.log('[OadsBot] Slash commands registered successfully');
+      logger.info('Slash commands registered successfully');
     } catch (error) {
-      console.error('[OadsBot] Failed to register slash commands:', error);
+      logger.error('Failed to register slash commands', { error });
     }
   }
 
@@ -158,16 +159,16 @@ export class OadsBot {
       const statusCh = await guild.channels.fetch(this.config.discord.statusChannelId);
       if (statusCh instanceof TextChannel) {
         this.statusChannel = statusCh;
-        console.log(`[OadsBot] Status channel: #${statusCh.name}`);
+        logger.info('Status channel initialized', { channel: statusCh.name });
       }
 
       const commandsCh = await guild.channels.fetch(this.config.discord.commandsChannelId);
       if (commandsCh instanceof TextChannel) {
         this.commandsChannel = commandsCh;
-        console.log(`[OadsBot] Commands channel: #${commandsCh.name}`);
+        logger.info('Commands channel initialized', { channel: commandsCh.name });
       }
     } catch (error) {
-      console.error('[OadsBot] Error initializing channels:', error);
+      logger.error('Error initializing channels', { error });
     }
   }
 
@@ -210,9 +211,9 @@ export class OadsBot {
         autoArchiveDuration: 1440, // 24 hours
       });
 
-      console.log(`[OadsBot] Task activated: ${task.id}`);
+      logger.info('Task activated', { taskId: task.id, title: task.title });
     } catch (error) {
-      console.error('[OadsBot] Error posting task activation:', error);
+      logger.error('Error posting task activation', { taskId: task.id, error });
     }
   }
 
@@ -232,7 +233,7 @@ export class OadsBot {
         await this.activeThread.send(logMessage);
       }
     } catch (error) {
-      console.error('[OadsBot] Error posting task update:', error);
+      logger.error('Error posting task update', { taskId: task.id, error });
     }
   }
 
@@ -242,9 +243,9 @@ export class OadsBot {
     try {
       const embed = createTaskQueuedEmbed(task);
       await this.statusChannel.send({ embeds: [embed] });
-      console.log(`[OadsBot] Task queued: ${task.title}`);
+      logger.info('Task queued', { title: task.title, project: task.project });
     } catch (error) {
-      console.error('[OadsBot] Error posting queued task:', error);
+      logger.error('Error posting queued task', { title: task.title, error });
     }
   }
 
@@ -261,9 +262,9 @@ export class OadsBot {
         this.activeThread = null;
       }
 
-      console.log(`[OadsBot] Task completed: ${title}`);
+      logger.info('Task completed', { filename, title });
     } catch (error) {
-      console.error('[OadsBot] Error posting task completion:', error);
+      logger.error('Error posting task completion', { filename, title, error });
     }
   }
 
@@ -273,9 +274,9 @@ export class OadsBot {
     try {
       const embed = createTaskBlockedEmbed(filename, title);
       await this.statusChannel.send({ embeds: [embed] });
-      console.log(`[OadsBot] Task blocked: ${title}`);
+      logger.info('Task blocked', { filename, title });
     } catch (error) {
-      console.error('[OadsBot] Error posting task blocked:', error);
+      logger.error('Error posting task blocked', { filename, title, error });
     }
   }
 
@@ -296,7 +297,7 @@ export class OadsBot {
         await this.activeStreamer.stop();
         await this.activeStreamer.sendSummary(exitCode, duration);
       } catch (error) {
-        console.error('[OadsBot] Error stopping streamer:', error);
+        logger.error('Error stopping streamer', { error });
       }
       this.activeStreamer = null;
     }
@@ -325,7 +326,7 @@ export class OadsBot {
     });
 
     await this.activeStreamer.start();
-    console.log('[OadsBot] Started output streaming');
+    logger.info('Started output streaming');
   }
 
   /**
@@ -336,16 +337,16 @@ export class OadsBot {
   }
 
   async start(): Promise<void> {
-    console.log('[OadsBot] Starting...');
+    logger.info('Starting bot...');
 
     await this.client.login(this.config.discord.token);
     await this.vaultMonitor.start();
 
-    console.log('[OadsBot] Ready!');
+    logger.info('Bot ready');
   }
 
   async stop(): Promise<void> {
-    console.log('[OadsBot] Stopping...');
+    logger.info('Stopping bot...');
 
     // Stop streamer if running
     if (this.activeStreamer) {
@@ -361,6 +362,6 @@ export class OadsBot {
     await this.vaultMonitor.stop();
     this.client.destroy();
 
-    console.log('[OadsBot] Stopped.');
+    logger.info('Bot stopped');
   }
 }

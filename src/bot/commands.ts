@@ -12,6 +12,7 @@ import {
   createApprovalEmbed,
   createRejectionEmbed,
 } from './embeds';
+import logger from '../utils/logger';
 
 const COMMAND_PREFIX = '!oads';
 
@@ -82,7 +83,7 @@ export async function handleCommand(
   try {
     await handler({ message, args, vaultMonitor, processManager, approvalService, config, bot });
   } catch (error) {
-    console.error(`[Commands] Error handling command ${commandName}:`, error);
+    logger.error('Error handling command', { command: commandName, error });
     await message.reply('An error occurred while processing your command.');
   }
 

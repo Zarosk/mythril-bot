@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { Message, TextChannel } from 'discord.js';
 import { config } from '../config';
 import { searchBrain, getRecentNotes, getActiveTasks } from './brain-client';
+import logger from '../utils/logger';
 
 const SYSTEM_PROMPT = `You are an AI development assistant integrated with the user's personal knowledge base (Brain).
 
@@ -74,7 +75,7 @@ export async function handleChatMessage(message: Message): Promise<void> {
       await message.reply(reply);
     }
   } catch (error) {
-    console.error('[ChatHandler] Error handling message:', error);
+    logger.error('Error handling chat message', { userId: message.author.id, error });
 
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error';

@@ -6,6 +6,7 @@
 
 import { TextChannel, ThreadChannel } from 'discord.js';
 import { StreamBuffer } from './stream-buffer';
+import logger from '../utils/logger';
 
 // Discord message limit (2000) minus code block overhead
 const MAX_MESSAGE_LENGTH = 1900;
@@ -115,7 +116,7 @@ export class DiscordStreamer {
         this.stats.totalCharacters += chunk.length;
         this.stats.lastMessageTime = new Date();
       } catch (error) {
-        console.error('[DiscordStreamer] Send error:', error);
+        logger.error('DiscordStreamer send error', { error });
         // Rate limit handling - wait and retry once
         if (this.isRateLimitError(error)) {
           await this.sleep(2000);
@@ -126,7 +127,7 @@ export class DiscordStreamer {
             this.stats.totalCharacters += chunk.length;
             this.stats.lastMessageTime = new Date();
           } catch (retryError) {
-            console.error('[DiscordStreamer] Retry failed:', retryError);
+            logger.error('DiscordStreamer retry failed', { error: retryError });
           }
         }
       }

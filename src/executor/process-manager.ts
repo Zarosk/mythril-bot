@@ -7,6 +7,7 @@ import { exec, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import { EventEmitter } from 'events';
 import { Config, ParsedTask } from '../types';
+import logger from '../utils/logger';
 
 export interface ProcessManagerEvents {
   started: () => void;
@@ -88,8 +89,7 @@ export class ProcessManager extends EventEmitter {
       const escapedPrompt = prompt.replace(/"/g, '\\"');
       const command = `${claudeCodePath} --dangerously-skip-permissions -p "${escapedPrompt}"`;
 
-      console.log(`[ProcessManager] Executing in: ${workingDir}`);
-      console.log(`[ProcessManager] Command: claude -p "..."`);
+      logger.info('Executing Claude Code', { workingDir, taskId: task.id });
 
       this.process = exec(command, {
         cwd: workingDir,
@@ -97,28 +97,28 @@ export class ProcessManager extends EventEmitter {
         maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large outputs
       }, (error, stdout, stderr) => {
         if (error) {
-          console.error('[ProcessManager] Exec error:', error.message);
+          logger.error('Exec error', { error: error.message });
           return;
         }
         if (stdout) {
-          console.log('[ProcessManager] Final output length:', stdout.length);
+          logger.debug('Final output', { length: stdout.length });
         }
         if (stderr) {
-          console.error('[ProcessManager] Stderr:', stderr);
+          logger.warn('Stderr output', { stderr });
         }
       });
 
       // Stream output as it comes
       this.process.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
-        console.log('[Claude]', text);
+        logger.debug('Claude output', { length: text.length });
         this.outputBuffer.push(text);
         this.emit('output', text);
       });
 
       this.process.stderr?.on('data', (data: Buffer) => {
         const text = data.toString();
-        console.error('[Claude Error]', text);
+        logger.warn('Claude stderr', { text });
         this.outputBuffer.push(`[stderr] ${text}`);
         this.emit('output', `[stderr] ${text}`);
       });
@@ -127,7 +127,7 @@ export class ProcessManager extends EventEmitter {
       this.setupExecutionTimeout();
 
       this.emit('started');
-      console.log(`[ProcessManager] Started Claude Code for task ${task.id}, PID: ${this.process.pid}`);
+      logger.info('Started Claude Code', { taskId: task.id, pid: this.process.pid });
     } catch (error) {
       this.cleanup();
       throw error;
@@ -158,13 +158,13 @@ Instructions:
     // stdout/stderr handlers are set up inline in start() method
 
     this.process.on('close', (code: number | null) => {
-      console.log(`[ProcessManager] Claude Code exited with code ${code}`);
+      logger.info('Claude Code exited', { exitCode: code });
       this.cleanup();
       this.emit('completed', code);
     });
 
     this.process.on('error', (error: Error) => {
-      console.error('[ProcessManager] Process error:', error);
+      logger.error('Process error', { error: error.message, stack: error.stack });
       this.cleanup();
       this.emit('error', error);
     });
@@ -172,23 +172,23 @@ Instructions:
 
   private setupExecutionTimeout(): void {
     this.executionTimeout = setTimeout(() => {
-      console.warn('[ProcessManager] Execution timeout reached');
+      logger.warn('Execution timeout reached', { timeoutMs: this.executionTimeoutMs });
       this.stop('Execution timeout reached');
     }, this.executionTimeoutMs);
   }
 
   async stop(reason?: string): Promise<void> {
     if (!this.process) {
-      console.log('[ProcessManager] No process running');
+      logger.debug('No process running to stop');
       return;
     }
 
-    console.log(`[ProcessManager] Stopping Claude Code${reason ? `: ${reason}` : ''}`);
+    logger.info('Stopping Claude Code', { reason });
 
     return new Promise((resolve) => {
       const forceKillTimeout = setTimeout(() => {
         if (this.process) {
-          console.log('[ProcessManager] Force killing process');
+          logger.warn('Force killing process');
           this.process.kill('SIGKILL');
         }
         this.cleanup();

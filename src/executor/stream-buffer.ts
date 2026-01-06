@@ -4,6 +4,8 @@
  * Used to batch Claude Code output before sending to Discord.
  */
 
+import logger from '../utils/logger';
+
 export interface StreamBufferOptions {
   flushIntervalMs: number;  // How often to auto-flush (default: 1500ms)
   maxBufferSize: number;    // Force flush when buffer exceeds this (default: 1500 chars)
@@ -85,7 +87,7 @@ export class StreamBuffer {
     try {
       await this.options.onFlush(content);
     } catch (error) {
-      console.error('[StreamBuffer] Flush error:', error);
+      logger.error('StreamBuffer flush error', { error });
     } finally {
       this.isFlushing = false;
 

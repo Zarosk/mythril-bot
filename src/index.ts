@@ -1,23 +1,23 @@
 import { config } from './config';
 import { OadsBot } from './bot/client';
+import logger from './utils/logger';
 
 async function main(): Promise<void> {
-  console.log('=================================');
-  console.log('  OADS Discord Orchestration Bot');
-  console.log('=================================');
-  console.log();
+  logger.info('=================================');
+  logger.info('  OADS Discord Orchestration Bot');
+  logger.info('=================================');
 
   const bot = new OadsBot(config);
 
   // Handle graceful shutdown
   process.on('SIGINT', async () => {
-    console.log('\nReceived SIGINT, shutting down...');
+    logger.info('Received SIGINT, shutting down...');
     await bot.stop();
     process.exit(0);
   });
 
   process.on('SIGTERM', async () => {
-    console.log('\nReceived SIGTERM, shutting down...');
+    logger.info('Received SIGTERM, shutting down...');
     await bot.stop();
     process.exit(0);
   });
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   try {
     await bot.start();
   } catch (error) {
-    console.error('Failed to start bot:', error);
+    logger.error('Failed to start bot', { error });
     process.exit(1);
   }
 }

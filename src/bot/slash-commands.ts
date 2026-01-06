@@ -23,6 +23,7 @@ import {
   createApprovalEmbed,
   createRejectionEmbed,
 } from './embeds';
+import logger from '../utils/logger';
 
 // Forward declaration for OadsBot to avoid circular imports
 interface OadsBotInterface {
@@ -211,7 +212,7 @@ export async function handleSlashCommand(
         });
     }
   } catch (error) {
-    console.error(`[SlashCommands] Error handling /${subcommand}:`, error);
+    logger.error('Error handling slash command', { subcommand, error });
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     if (interaction.replied || interaction.deferred) {

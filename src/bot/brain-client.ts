@@ -1,4 +1,5 @@
 import { config } from '../config';
+import logger from '../utils/logger';
 
 export interface BrainNote {
   id: string;
@@ -50,7 +51,7 @@ export async function searchBrain(query: string): Promise<BrainNote[]> {
     );
     return data.results || [];
   } catch (error) {
-    console.error('[BrainClient] Search failed:', error);
+    logger.warn('Brain search failed', { query, error });
     return [];
   }
 }
@@ -62,7 +63,7 @@ export async function getRecentNotes(limit: number = 10): Promise<BrainNote[]> {
     );
     return data.notes || [];
   } catch (error) {
-    console.error('[BrainClient] Get recent notes failed:', error);
+    logger.warn('Brain get recent notes failed', { limit, error });
     return [];
   }
 }
@@ -74,7 +75,7 @@ export async function getActiveTasks(): Promise<BrainTask[]> {
     );
     return data.tasks || [];
   } catch (error) {
-    console.error('[BrainClient] Get active tasks failed:', error);
+    logger.warn('Brain get active tasks failed', { error });
     return [];
   }
 }
@@ -89,7 +90,7 @@ export async function addNote(
       body: JSON.stringify({ content, project, source: 'discord-chat' }),
     });
   } catch (error) {
-    console.error('[BrainClient] Add note failed:', error);
+    logger.error('Brain add note failed', { project, error });
     return null;
   }
 }
@@ -105,7 +106,7 @@ export async function createTask(
       body: JSON.stringify({ title, description, project }),
     });
   } catch (error) {
-    console.error('[BrainClient] Create task failed:', error);
+    logger.error('Brain create task failed', { title, project, error });
     return null;
   }
 }

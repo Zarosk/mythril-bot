@@ -5,6 +5,7 @@ import { EventEmitter } from 'events';
 import { ParsedTask, TaskDiff, QueuedTask } from '../types';
 import { parseTask } from './parser';
 import { diffTasks, hasMeaningfulChanges } from './differ';
+import logger from '../utils/logger';
 
 /**
  * Check if a parsed task represents a cleared/placeholder state
@@ -74,7 +75,7 @@ export class VaultMonitor extends EventEmitter {
       this.emit('error', error);
     });
 
-    console.log(`[VaultMonitor] Watching: ${orchestraPath}`);
+    logger.info('VaultMonitor watching', { path: orchestraPath });
   }
 
   async stop(): Promise<void> {
@@ -216,7 +217,7 @@ export class VaultMonitor extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error('[VaultMonitor] Error reading queue:', error);
+      logger.error('Error reading queue', { error });
     }
 
     return tasks;
