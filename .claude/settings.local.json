@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nchore: initialize project structure\n\n- Add package.json with discord.js, chokidar, gray-matter dependencies\n- Add TypeScript configuration with strict mode\n- Add ESLint and Jest configuration\n- Add .gitignore and .env.example\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}
