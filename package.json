@@ -1,7 +1,7 @@
 {
-  "name": "oads-discord-bot",
+  "name": "mythril-bot",
   "version": "0.4.0",
-  "description": "Discord orchestration bot for OADS - monitors vault and posts status updates",
+  "description": "Mythril - AI-powered development orchestration bot",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -15,7 +15,7 @@
   "keywords": [
     "discord",
     "bot",
-    "oads",
+    "mythril",
     "orchestration"
   ],
   "author": "",

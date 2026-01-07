@@ -3,9 +3,9 @@ import { OadsBot } from './bot/client';
 import logger from './utils/logger';
 
 async function main(): Promise<void> {
-  logger.info('=================================');
-  logger.info('  OADS Discord Orchestration Bot');
-  logger.info('=================================');
+  logger.info('================================');
+  logger.info('  Mythril Orchestration Bot');
+  logger.info('================================');
 
   const bot = new OadsBot(config);
 

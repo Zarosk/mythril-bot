@@ -37,7 +37,7 @@ interface SubmitFeedbackResult {
 export function buildFeedbackCommand(): RESTPostAPIChatInputApplicationCommandsJSONBody {
   return new SlashCommandBuilder()
     .setName('feedback')
-    .setDescription('Submit feedback about OADS')
+    .setDescription('Submit feedback about Mythril')
     .addStringOption(opt =>
       opt
         .setName('message')

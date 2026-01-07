@@ -104,7 +104,7 @@ async function handleQueue(ctx: CommandContext): Promise<void> {
 
 async function handleHelp(ctx: CommandContext): Promise<void> {
   const helpText = `
-**OADS Bot Commands**
+**Mythril Bot Commands**
 
 **Status & Info**
 \`!oads status\` - Show current active task status

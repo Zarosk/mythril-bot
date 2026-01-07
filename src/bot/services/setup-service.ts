@@ -23,13 +23,13 @@ export interface GuildConfig {
 // In-memory store for guild configurations
 const guildConfigs = new Map<string, GuildConfig>();
 
-const CATEGORY_NAME = 'OADS';
+const CATEGORY_NAME = 'Mythril';
 const CHANNELS = [
-  { name: 'commands', topic: 'Send OADS commands here (/oads help)' },
+  { name: 'commands', topic: 'Send Mythril commands here (/oads help)' },
   { name: 'status', topic: 'Task status updates and execution logs' },
   { name: 'alerts', topic: 'Important alerts and notifications' },
   { name: 'decisions', topic: 'Decisions requiring human approval' },
-  { name: 'chat', topic: 'Chat with OADS AI assistant' },
+  { name: 'chat', topic: 'Chat with Mythril AI assistant' },
 ] as const;
 
 /**
@@ -47,20 +47,20 @@ export function hasRequiredPermissions(guild: Guild): boolean {
 }
 
 /**
- * Create the OADS category and channels for a guild
+ * Create the Mythril category and channels for a guild
  */
 export async function setupGuildChannels(guild: Guild): Promise<GuildConfig | null> {
-  logger.info('Setting up OADS channels', { guildId: guild.id, guildName: guild.name });
+  logger.info('Setting up Mythril channels', { guildId: guild.id, guildName: guild.name });
 
   try {
     // Create the category
     const category = await guild.channels.create({
       name: CATEGORY_NAME,
       type: ChannelType.GuildCategory,
-      reason: 'OADS Bot auto-setup',
+      reason: 'Mythril Bot auto-setup',
     });
 
-    logger.info('Created OADS category', { categoryId: category.id });
+    logger.info('Created Mythril category', { categoryId: category.id });
 
     // Create channels under the category
     const channelIds: Record<string, string> = {};
@@ -71,7 +71,7 @@ export async function setupGuildChannels(guild: Guild): Promise<GuildConfig | nu
         type: ChannelType.GuildText,
         parent: category.id,
         topic: channelDef.topic,
-        reason: 'OADS Bot auto-setup',
+        reason: 'Mythril Bot auto-setup',
       });
 
       channelIds[channelDef.name] = channel.id;
@@ -117,10 +117,10 @@ export async function setupGuildChannels(guild: Guild): Promise<GuildConfig | nu
  */
 async function sendWelcomeMessage(channel: TextChannel): Promise<void> {
   const embed = new EmbedBuilder()
-    .setTitle('OADS Bot Setup Complete')
+    .setTitle('Mythril Bot Setup Complete')
     .setColor(0x00ff00)
     .setDescription(
-      'The OADS (Obsidian-Augmented Development System) bot has been set up in this server.'
+      'The Mythril AI development orchestration bot has been set up in this server.'
     )
     .addFields(
       {
@@ -147,7 +147,7 @@ async function sendWelcomeMessage(channel: TextChannel): Promise<void> {
           'To connect this bot to your Obsidian vault and code projects, update the `.env` file with the appropriate paths.',
       }
     )
-    .setFooter({ text: 'OADS Bot' })
+    .setFooter({ text: 'Mythril Bot' })
     .setTimestamp();
 
   await channel.send({ embeds: [embed] });
@@ -161,10 +161,10 @@ export async function notifyOwnerMissingPermissions(guild: Guild): Promise<void>
     const owner = await guild.fetchOwner();
 
     const embed = new EmbedBuilder()
-      .setTitle('OADS Bot - Missing Permissions')
+      .setTitle('Mythril Bot - Missing Permissions')
       .setColor(0xff0000)
       .setDescription(
-        `The OADS bot was added to **${guild.name}** but doesn't have the required permissions to set up channels.`
+        `The Mythril bot was added to **${guild.name}** but doesn't have the required permissions to set up channels.`
       )
       .addFields({
         name: 'Required Permissions',

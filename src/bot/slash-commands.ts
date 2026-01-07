@@ -1,6 +1,6 @@
 /**
  * Slash Commands
- * Discord slash command registration and handling for OADS bot.
+ * Discord slash command registration and handling for Mythril bot.
  * Migrates from prefix commands (!oads) to slash commands (/oads).
  */
 
@@ -50,7 +50,7 @@ interface OadsBotInterface {
 export function registerSlashCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
   const oadsCommand = new SlashCommandBuilder()
     .setName('oads')
-    .setDescription('OADS Orchestra Control')
+    .setDescription('Mythril Orchestra Control')
     .addSubcommand(sub =>
       sub
         .setName('status')
@@ -633,7 +633,7 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
     });
   } else {
     const generalHelp = `
-**OADS Bot Commands**
+**Mythril Bot Commands**
 
 **Status & Info**
 \`/oads status\` - Show current active task status
@@ -665,7 +665,7 @@ Use \`/oads help <command>\` for detailed info on any command.
 
     await interaction.reply({
       embeds: [{
-        title: '📚 OADS Bot Help',
+        title: '📚 Mythril Bot Help',
         description: generalHelp,
         color: 0x0099ff,
       }],

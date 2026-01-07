@@ -1,6 +1,6 @@
-# OADS Discord Orchestration Bot
+# Mythril Orchestration Bot
 
-Discord bot that serves as the orchestration layer for OADS (Obsidian-Augmented Development System). Monitors the Obsidian vault for task changes and posts status updates to Discord.
+Discord bot that serves as the orchestration layer for Mythril, an AI-powered development system. Monitors the Obsidian vault for task changes and posts status updates to Discord.
 
 ## Features
 
