@@ -5,9 +5,11 @@ describe('Slash Commands', () => {
     it('should return command definitions', () => {
       const commands = registerSlashCommands();
 
-      expect(commands).toHaveLength(1);
+      expect(commands).toHaveLength(2);
       expect(commands[0].name).toBe('oads');
-      expect(commands[0].description).toBe('OADS Orchestra Control');
+      expect(commands[0].description).toBe('Mythril Orchestra Control');
+      expect(commands[1].name).toBe('feedback');
+      expect(commands[1].description).toBe('Submit feedback about Mythril');
     });
 
     it('should have all required subcommands', () => {

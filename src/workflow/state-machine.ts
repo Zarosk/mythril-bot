@@ -1,6 +1,6 @@
 /**
  * Task State Machine
- * Manages valid state transitions for OADS tasks
+ * Manages valid state transitions for Mythril tasks
  */
 
 export enum TaskStatus {
