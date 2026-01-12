@@ -50,6 +50,10 @@ Full docs: https://mythril-docs.vercel.app
 - Discord Bot Token ([create one](https://discord.com/developers/applications))
 - Anthropic API Key ([get one](https://console.anthropic.com/))
 
+## Community
+
+https://discord.gg/kkbTmW8QF2
+
 ## Support
 
 - [Report bugs](https://github.com/Zarosk/mythril-bot/issues)
