@@ -10,7 +10,8 @@
     "lint": "eslint src --ext .ts",
     "test": "jest",
     "notify": "tsx scripts/notify-complete.ts",
-    "dev:all": "concurrently -n BOT,BRAIN -c blue,green \"npm run dev\" \"npm --prefix ../oads-brain run dev\""
+    "dev:all": "concurrently -n BOT,BRAIN -c blue,green \"npm run dev\" \"npm --prefix ../oads-brain run dev\"",
+    "setup-check": "ts-node scripts/setup-check.ts"
   },
   "keywords": [
     "discord",
