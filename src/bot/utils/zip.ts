@@ -43,7 +43,7 @@ export async function createZip(
   }
 
   // Create zip in temp directory
-  const tempDir = path.join(os.tmpdir(), 'oads-zips');
+  const tempDir = path.join(os.tmpdir(), 'mythril-zips');
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
@@ -123,7 +123,7 @@ export function deleteZip(zipPath: string): boolean {
  * @param maxAgeHours Maximum age in hours (default: 24)
  */
 export function cleanupOldZips(maxAgeHours: number = 24): number {
-  const tempDir = path.join(os.tmpdir(), 'oads-zips');
+  const tempDir = path.join(os.tmpdir(), 'mythril-zips');
 
   if (!fs.existsSync(tempDir)) {
     return 0;

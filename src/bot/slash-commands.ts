@@ -1,7 +1,7 @@
 /**
  * Slash Commands
  * Discord slash command registration and handling for Mythril bot.
- * Migrates from prefix commands (!oads) to slash commands (/oads).
+ * Migrates from prefix commands (!mythril) to slash commands (/mythril).
  */
 
 import {
@@ -38,8 +38,8 @@ import { handleDeleteData } from './commands/delete-data';
 import { handleResubscribe } from './commands/resubscribe';
 import { buildFeedbackCommand, handleFeedbackCommand } from './commands/feedback';
 
-// Forward declaration for OadsBot to avoid circular imports
-interface OadsBotInterface {
+// Forward declaration for MythrilBot to avoid circular imports
+interface MythrilBotInterface {
   startStreaming(): Promise<void>;
   getActiveThread(): unknown;
 }
@@ -48,8 +48,8 @@ interface OadsBotInterface {
  * Build and return slash command definitions
  */
 export function registerSlashCommands(): RESTPostAPIChatInputApplicationCommandsJSONBody[] {
-  const oadsCommand = new SlashCommandBuilder()
-    .setName('oads')
+  const mythrilCommand = new SlashCommandBuilder()
+    .setName('mythril')
     .setDescription('Mythril Orchestra Control')
     .addSubcommand(sub =>
       sub
@@ -183,7 +183,7 @@ export function registerSlashCommands(): RESTPostAPIChatInputApplicationCommands
         .setDescription('Permanently delete all your data (requires confirmation)')
     );
 
-  return [oadsCommand.toJSON(), buildFeedbackCommand()];
+  return [mythrilCommand.toJSON(), buildFeedbackCommand()];
 }
 
 /**
@@ -195,7 +195,7 @@ export async function handleSlashCommand(
   processManager: ProcessManager,
   approvalService: ApprovalService,
   config: Config,
-  bot: OadsBotInterface
+  bot: MythrilBotInterface
 ): Promise<void> {
   // Handle feedback command separately
   if (interaction.commandName === 'feedback') {
@@ -203,7 +203,7 @@ export async function handleSlashCommand(
     return;
   }
 
-  if (interaction.commandName !== 'oads') return;
+  if (interaction.commandName !== 'mythril') return;
 
   const subcommand = interaction.options.getSubcommand();
   const userId = interaction.user.id;
@@ -308,7 +308,7 @@ export async function handleAutocomplete(
   interaction: AutocompleteInteraction,
   vaultMonitor: VaultMonitor
 ): Promise<void> {
-  if (interaction.commandName !== 'oads') return;
+  if (interaction.commandName !== 'mythril') return;
 
   const focusedOption = interaction.options.getFocused(true);
 
@@ -399,7 +399,7 @@ async function handleStart(
   interaction: ChatInputCommandInteraction,
   vaultMonitor: VaultMonitor,
   processManager: ProcessManager,
-  bot: OadsBotInterface
+  bot: MythrilBotInterface
 ): Promise<void> {
   const task = vaultMonitor.getCurrentTask();
 
@@ -413,7 +413,7 @@ async function handleStart(
 
   if (processManager.isRunning()) {
     await interaction.reply({
-      content: 'Claude Code is already running. Use `/oads stop` to halt it first.',
+      content: 'Claude Code is already running. Use `/mythril stop` to halt it first.',
       ephemeral: true,
     });
     return;
@@ -491,7 +491,7 @@ async function handleApprove(
 
   if (processManager.isRunning()) {
     await interaction.reply({
-      content: 'Task is still executing. Stop execution first with `/oads stop`.',
+      content: 'Task is still executing. Stop execution first with `/mythril stop`.',
       ephemeral: true,
     });
     return;
@@ -531,7 +531,7 @@ async function handleReject(
 
   if (processManager.isRunning()) {
     await interaction.reply({
-      content: 'Task is still executing. Stop execution first with `/oads stop`.',
+      content: 'Task is still executing. Stop execution first with `/mythril stop`.',
       ephemeral: true,
     });
     return;
@@ -573,51 +573,51 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
 
   const commandHelp: Record<string, { title: string; description: string }> = {
     status: {
-      title: '/oads status',
+      title: '/mythril status',
       description: 'Shows the current active task status including:\n• Task ID and title\n• Current status\n• Progress on acceptance criteria\n• Recent execution log entries',
     },
     queue: {
-      title: '/oads queue',
+      title: '/mythril queue',
       description: 'Lists all tasks waiting in the queue with their:\n• Title\n• Project\n• Priority',
     },
     list: {
-      title: '/oads list [filter]',
+      title: '/mythril list [filter]',
       description: 'Lists tasks with optional filtering.\n\n**Filters:**\n• `all` - Show all tasks\n• `queued` - Show only queued tasks\n• `active` - Show only active task\n• `completed` - Show completed tasks',
     },
     start: {
-      title: '/oads start',
+      title: '/mythril start',
       description: 'Starts Claude Code execution on the active task.\n\nRequirements:\n• A task must be active\n• Task must be in IN_PROGRESS status\n• No other execution running\n\nOutput is streamed to the task thread in real-time.',
     },
     stop: {
-      title: '/oads stop [reason]',
+      title: '/mythril stop [reason]',
       description: 'Gracefully stops Claude Code execution.\n\n**Options:**\n• `reason` - Optional reason for stopping\n\nThe process is first sent SIGTERM, then SIGKILL if needed.',
     },
     approve: {
-      title: '/oads approve [notes]',
+      title: '/mythril approve [notes]',
       description: 'Approves task completion and moves it to completed.\n\n**Options:**\n• `notes` - Optional approval notes\n\nRequirements:\n• Execution must be stopped first',
     },
     reject: {
-      title: '/oads reject <reason>',
+      title: '/mythril reject <reason>',
       description: 'Rejects the task and returns it for retry.\n\n**Options:**\n• `reason` - Required reason for rejection\n\nRequirements:\n• Execution must be stopped first',
     },
     pick: {
-      title: '/oads pick <task>',
+      title: '/mythril pick <task>',
       description: 'Picks a task from the queue to activate.\n\n**Options:**\n• `task` - Task file to activate (autocomplete available)\n\nUse Tab to see available tasks.',
     },
     brain: {
-      title: '/oads brain <content> [project]',
+      title: '/mythril brain <content> [project]',
       description: 'Add a note to the brain.\n\n**Options:**\n• `content` - Note content (required)\n• `project` - Optional project name\n\nNotes are stored via the Brain API.',
     },
     unsubscribe: {
-      title: '/oads unsubscribe',
-      description: 'Stop receiving notifications from the bot.\n\nYour data is preserved and you can resubscribe at any time using `/oads resubscribe`.',
+      title: '/mythril unsubscribe',
+      description: 'Stop receiving notifications from the bot.\n\nYour data is preserved and you can resubscribe at any time using `/mythril resubscribe`.',
     },
     resubscribe: {
-      title: '/oads resubscribe',
-      description: 'Start receiving notifications again after unsubscribing.\n\nRe-enables all notifications that were disabled by `/oads unsubscribe`.',
+      title: '/mythril resubscribe',
+      description: 'Start receiving notifications again after unsubscribing.\n\nRe-enables all notifications that were disabled by `/mythril unsubscribe`.',
     },
     'delete-my-data': {
-      title: '/oads delete-my-data',
+      title: '/mythril delete-my-data',
       description: 'Permanently delete all your data.\n\n**Warning:** This action cannot be undone!\n\nYou will be asked to type "CONFIRM DELETE" to proceed.',
     },
   };
@@ -636,31 +636,31 @@ async function handleHelp(interaction: ChatInputCommandInteraction): Promise<voi
 **Mythril Bot Commands**
 
 **Status & Info**
-\`/oads status\` - Show current active task status
-\`/oads queue\` - List queued tasks
-\`/oads list [filter]\` - List tasks with optional filter
-\`/oads help [command]\` - Show help
+\`/mythril status\` - Show current active task status
+\`/mythril queue\` - List queued tasks
+\`/mythril list [filter]\` - List tasks with optional filter
+\`/mythril help [command]\` - Show help
 
 **Execution Control**
-\`/oads start\` - Start Claude Code execution
-\`/oads stop [reason]\` - Stop execution gracefully
+\`/mythril start\` - Start Claude Code execution
+\`/mythril stop [reason]\` - Stop execution gracefully
 
 **Approval Workflow**
-\`/oads approve [notes]\` - Approve task completion
-\`/oads reject <reason>\` - Reject task for retry
+\`/mythril approve [notes]\` - Approve task completion
+\`/mythril reject <reason>\` - Reject task for retry
 
 **Task Selection**
-\`/oads pick <task>\` - Pick task from queue (Tab for autocomplete)
+\`/mythril pick <task>\` - Pick task from queue (Tab for autocomplete)
 
 **Brain**
-\`/oads brain <content> [project]\` - Add a note to the brain
+\`/mythril brain <content> [project]\` - Add a note to the brain
 
 **User Settings**
-\`/oads unsubscribe\` - Stop receiving notifications
-\`/oads resubscribe\` - Start receiving notifications again
-\`/oads delete-my-data\` - Permanently delete all your data
+\`/mythril unsubscribe\` - Stop receiving notifications
+\`/mythril resubscribe\` - Start receiving notifications again
+\`/mythril delete-my-data\` - Permanently delete all your data
 
-Use \`/oads help <command>\` for detailed info on any command.
+Use \`/mythril help <command>\` for detailed info on any command.
 `;
 
     await interaction.reply({

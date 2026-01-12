@@ -13,7 +13,17 @@
       "Bash(cat:*)",
       "Bash(curl -X POST \"https://discordapp.com/api/webhooks/1457907118886621319/Uoziz_0LFKasaPJRaYjPuBma7grkp_P2WErtoGYHSXoTeyMi_mFCjPMGlXYS-Ui9Y-nL\" -H \"Content-Type: application/json\" -d \"{\"\"embeds\"\":[{\"\"title\"\":\"\"OADS-004 Implementation Complete\"\",\"\"description\"\":\"\"Bot Output Streaming & Slash Command Migration implemented successfully.\"\",\"\"color\"\":65280,\"\"fields\"\":[{\"\"name\"\":\"\"Part A: Output Streaming\"\",\"\"value\"\":\"\"- StreamBuffer class \\(1.5s batch, 1500 char threshold\\)\\\\n- DiscordStreamer with code blocks & typing indicator\\\\n- Message splitting for Discord limits\\\\n- Execution summary on completion\"\",\"\"inline\"\":false},{\"\"name\"\":\"\"Part B: Slash Commands\"\",\"\"value\"\":\"\"- 9 subcommands: status, queue, list, start, stop, approve, reject, pick, help\\\\n- Autocomplete for task selection\\\\n- Auto-registration on startup\\\\n- Deprecation warnings for prefix commands\"\",\"\"inline\"\":false},{\"\"name\"\":\"\"New Files\"\",\"\"value\"\":\"\"- stream-buffer.ts\\\\n- discord-streamer.ts\\\\n- slash-commands.ts\\\\n- stream-buffer.test.ts\\\\n- slash-commands.test.ts\"\",\"\"inline\"\":true},{\"\"name\"\":\"\"Test Results\"\",\"\"value\"\":\"\"62 tests passing\\\\nBuild: Pass\\\\nLint: Pass\"\",\"\"inline\"\":true},{\"\"name\"\":\"\"Version\"\",\"\"value\"\":\"\"0.3.0\"\",\"\"inline\"\":true}],\"\"footer\"\":{\"\"text\"\":\"\"OADS Task Completed\"\"}}]}\")",
       "Bash(npm install:*)",
-      "Bash(call \"C:\\\\Users\\\\Alexander\\\\oads-done.bat\")"
+      "Bash(call \"C:\\\\Users\\\\Alexander\\\\oads-done.bat\")",
+      "Bash(npx tsc --init)",
+      "WebFetch(domain:docusaurus.io)",
+      "Bash(npx tsc:*)",
+      "Bash(git init:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(./node_modules/.bin/tailwindcss init:*)",
+      "Bash(npm exec:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(dir /b \"C:\\\\Users\\\\Alexander\\\\code\\\\oads-brain\\\\dist\\\\db\")"
     ]
   }
 }

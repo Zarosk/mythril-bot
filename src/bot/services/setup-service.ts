@@ -25,7 +25,7 @@ const guildConfigs = new Map<string, GuildConfig>();
 
 const CATEGORY_NAME = 'Mythril';
 const CHANNELS = [
-  { name: 'commands', topic: 'Send Mythril commands here (/oads help)' },
+  { name: 'commands', topic: 'Send Mythril commands here (/mythril help)' },
   { name: 'status', topic: 'Task status updates and execution logs' },
   { name: 'alerts', topic: 'Important alerts and notifications' },
   { name: 'decisions', topic: 'Decisions requiring human approval' },
@@ -136,9 +136,9 @@ async function sendWelcomeMessage(channel: TextChannel): Promise<void> {
       {
         name: 'Getting Started',
         value: [
-          'Use `/oads help` to see available commands',
-          'Use `/oads status` to check the current task',
-          'Use `/oads queue` to see queued tasks',
+          'Use `/mythril help` to see available commands',
+          'Use `/mythril status` to check the current task',
+          'Use `/mythril queue` to see queued tasks',
         ].join('\n'),
       },
       {
@@ -173,7 +173,7 @@ export async function notifyOwnerMissingPermissions(guild: Guild): Promise<void>
       .addFields({
         name: 'What to do',
         value:
-          'Please update the bot\'s role permissions and use `/oads setup` in the server to retry channel creation.',
+          'Please update the bot\'s role permissions and use `/mythril setup` in the server to retry channel creation.',
       })
       .setTimestamp();
 

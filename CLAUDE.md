@@ -1,7 +1,7 @@
-# CLAUDE.md - OADS Discord Bot
+# CLAUDE.md - Mythril Discord Bot
 
 ## Project Overview
-Discord orchestration bot for OADS (Obsidian-Augmented Development System). Monitors the Obsidian vault for task changes and posts status updates to Discord.
+Discord orchestration bot for Mythril. Monitors the Obsidian vault for task changes and posts status updates to Discord.
 
 ## Quick Start
 ```bash
@@ -19,8 +19,8 @@ src/
 ├── types.ts              # TypeScript interfaces
 ├── bot/
 │   ├── client.ts         # Discord.js client and event handlers
-│   ├── commands.ts       # !oads command handlers (deprecated)
-│   ├── slash-commands.ts # /oads slash command handlers
+│   ├── commands.ts       # !mythril command handlers (deprecated)
+│   ├── slash-commands.ts # /mythril slash command handlers
 │   ├── chat-handler.ts   # Conversational AI message handler
 │   ├── brain-client.ts   # Brain API client for context
 │   └── embeds.ts         # Discord embed builders
@@ -57,7 +57,7 @@ Uses MD5 hash of file content to detect changes. When content changes:
 ### Discord Integration
 - Main channel: Task activation/completion/blocking messages
 - Thread per task: Execution log updates and real-time streaming
-- Commands channel: Responds to `/oads` slash commands
+- Commands channel: Responds to `/mythril` slash commands
 
 ### Output Streaming
 When Claude Code executes, output is streamed to Discord:
@@ -68,7 +68,7 @@ When Claude Code executes, output is streamed to Discord:
 5. Summary message on completion
 
 ### Conversational AI Mode
-Messages in #oads-chat trigger Claude API responses with Brain context:
+Messages in #mythril-chat trigger Claude API responses with Brain context:
 1. User sends message in chat channel
 2. Bot shows typing indicator
 3. Brain API searched for relevant notes, recent notes, active tasks
@@ -80,21 +80,21 @@ Messages in #oads-chat trigger Claude API responses with Brain context:
 ### Slash Commands (Recommended)
 | Command | Description |
 |---------|-------------|
-| `/oads status` | Show current active task |
-| `/oads queue` | List queued tasks |
-| `/oads list [filter]` | List tasks with optional filter |
-| `/oads start` | Start Claude Code execution |
-| `/oads stop [reason]` | Stop execution gracefully |
-| `/oads approve [notes]` | Approve task completion |
-| `/oads reject <reason>` | Reject task (reason required) |
-| `/oads pick <task>` | Pick task from queue (Tab for autocomplete) |
-| `/oads help [command]` | Show help |
-| `/oads brain <content> [project]` | Add a note to the brain |
+| `/mythril status` | Show current active task |
+| `/mythril queue` | List queued tasks |
+| `/mythril list [filter]` | List tasks with optional filter |
+| `/mythril start` | Start Claude Code execution |
+| `/mythril stop [reason]` | Stop execution gracefully |
+| `/mythril approve [notes]` | Approve task completion |
+| `/mythril reject <reason>` | Reject task (reason required) |
+| `/mythril pick <task>` | Pick task from queue (Tab for autocomplete) |
+| `/mythril help [command]` | Show help |
+| `/mythril brain <content> [project]` | Add a note to the brain |
 
 ### Prefix Commands (Deprecated)
-- `!oads status`, `!oads queue`, `!oads help`
-- `!oads start`, `!oads stop [reason]`
-- `!oads approve [notes]`, `!oads reject <reason>`
+- `!mythril status`, `!mythril queue`, `!mythril help`
+- `!mythril start`, `!mythril stop [reason]`
+- `!mythril approve [notes]`, `!mythril reject <reason>`
 
 ## Environment Variables
 Required in `.env`:

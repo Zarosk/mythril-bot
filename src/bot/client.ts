@@ -26,7 +26,7 @@ import {
 } from './embeds';
 import logger from '../utils/logger';
 
-export class OadsBot {
+export class MythrilBot {
   private client: Client;
   private config: Config;
   private vaultMonitor: VaultMonitor;

@@ -30,12 +30,12 @@ export async function handleUnsubscribe(
       logger.info('User unsubscribed', { userId, userTag });
       await interaction.editReply({
         content: 'You have been unsubscribed from notifications.\n\n' +
-          'Your data has been preserved. Use `/oads resubscribe` to start receiving notifications again.',
+          'Your data has been preserved. Use `/mythril resubscribe` to start receiving notifications again.',
       });
     } else if (result.alreadyUnsubscribed) {
       await interaction.editReply({
         content: 'You are already unsubscribed from notifications.\n\n' +
-          'Use `/oads resubscribe` to start receiving notifications again.',
+          'Use `/mythril resubscribe` to start receiving notifications again.',
       });
     } else {
       await interaction.editReply({

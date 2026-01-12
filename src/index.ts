@@ -1,5 +1,5 @@
 import { config } from './config';
-import { OadsBot } from './bot/client';
+import { MythrilBot } from './bot/client';
 import logger from './utils/logger';
 
 async function main(): Promise<void> {
@@ -7,7 +7,7 @@ async function main(): Promise<void> {
   logger.info('  Mythril Orchestration Bot');
   logger.info('================================');
 
-  const bot = new OadsBot(config);
+  const bot = new MythrilBot(config);
 
   // Handle graceful shutdown
   process.on('SIGINT', async () => {
