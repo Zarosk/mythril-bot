@@ -1,54 +1,66 @@
 # Mythril
 
-AI-powered Discord bot for development orchestration. Self-hosted, open source, free forever.
+AI-powered Discord bot that orchestrates Claude Code execution. Self-hosted, open source, free forever.
+
+## What It Does
+
+```
+/mythril start
+    ↓
+claude --dangerously-skip-permissions -p "task prompt"
+    ↓
+Output streams to Discord thread
+    ↓
+/mythril approve
+```
+
+Control Claude Code from Discord. The AI runs on your machine, in your codebase.
 
 ## Features
 
-- **Claude Code Integration** - Orchestrate AI coding sessions from Discord
+- **Claude Code Orchestration** - Trigger Claude Code from Discord, watch output in real-time
+- **Task Management** - Queue tasks in Obsidian, pick and execute from Discord
 - **Brain/Memory** - Persistent notes and context across sessions
-- **Task Management** - Queue, track, and approve development tasks
-- **Notifications** - Real-time updates on task progress
 - **BYOK** - Bring your own Anthropic API key
+
+## Requirements
+
+- Node.js 18+
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed locally
+- Obsidian (for task management)
+- Discord Bot Token
+- Anthropic API Key
 
 ## Quick Start
 
 ```bash
-# Clone
 git clone https://github.com/Zarosk/mythril-bot.git
 cd mythril-bot
-
-# Configure
 cp .env.example .env
-# Edit .env with your Discord token and Anthropic API key
-
-# Run with Docker
-docker-compose up
-
-# Or run directly
+# Edit .env with your tokens and paths
 npm install
 npm run dev:all
 ```
 
-## Documentation
-
-Full docs: https://mythril-docs.vercel.app
+**Note:** Docker won't work for this use case. Claude Code must run locally on your machine.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `/mythril status` | Show current task status |
-| `/mythril queue` | List queued tasks |
 | `/mythril start` | Start Claude Code execution |
 | `/mythril stop` | Stop execution gracefully |
-| `/mythril brain <note>` | Add a note to the brain |
+| `/mythril approve` | Approve completed task |
+| `/mythril reject` | Reject task |
+| `/mythril status` | Show current task |
+| `/mythril queue` | List queued tasks |
+| `/mythril pick` | Activate a task |
+| `/mythril brain` | Add a note |
 | `/mythril help` | Show all commands |
 
-## Requirements
+## Documentation
 
-- Node.js 18+
-- Discord Bot Token ([create one](https://discord.com/developers/applications))
-- Anthropic API Key ([get one](https://console.anthropic.com/))
+Full docs: https://mythril-docs.vercel.app
 
 ## Links
 
