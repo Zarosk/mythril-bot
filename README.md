@@ -66,7 +66,7 @@ Full docs: https://mythril-docs.vercel.app
 
 - [Website](https://mythril-web.vercel.app)
 - [Documentation](https://mythril-docs.vercel.app)
-- [Discord Community](https://discord.gg/kkbTmW8QF2)
+- [Discord Community](https://discord.gg/5DhmG2uvBp)
 - [Report Issues](https://github.com/Zarosk/mythril-bot/issues)
 
 ## License
